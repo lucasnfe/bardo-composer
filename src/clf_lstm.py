@@ -18,7 +18,7 @@ def build_dataset_lstm(episodes, vocabulary, context_size, batch_size, test_ep):
 
     train_dataset = tf.data.Dataset.from_generator(lambda: iter(train_examples), (tf.int32, tf.int32))
     train_dataset = train_dataset.shuffle(BUFFER_SIZE)
-    train_dataset = train_dataset.padded_batch(batch_size, padded_shapes=([None], [None]))
+    train_dataset = train_dataset.padded_batch(batch_size, padded_shapes=([None], [1]))
 
     test_examples = []
     for i in range(len(X_test)):
@@ -29,7 +29,7 @@ def build_dataset_lstm(episodes, vocabulary, context_size, batch_size, test_ep):
         test_examples.append((X_test[i], [Y_test[i]]))
 
     test_dataset = tf.data.Dataset.from_generator(lambda: iter(test_examples), (tf.int32, tf.int32))
-    test_dataset = test_dataset.padded_batch(batch_size, padded_shapes=([None], [None]))
+    test_dataset = test_dataset.padded_batch(batch_size, padded_shapes=([None], [1]))
 
     return train_dataset, test_dataset
 
@@ -58,10 +58,11 @@ if __name__ == "__main__":
             tf.keras.layers.Embedding(len(vocabulary), 256),
             tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256)),
             tf.keras.layers.Dense(256, activation='relu'),
-            tf.keras.layers.Dense(4)
+            #tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(4, activation='softmax')
         ])
 
-        clf_lstm.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        clf_lstm.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(),
                     optimizer=tf.keras.optimizers.Adam(1e-4), metrics=['accuracy'])
 
         history = clf_lstm.fit(train_dataset, epochs=10, validation_data=test_dataset)
