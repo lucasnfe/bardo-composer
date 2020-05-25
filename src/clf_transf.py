@@ -68,6 +68,9 @@ if __name__ == "__main__":
     accuracies = []
 
     for ep, _ in sorted(episodes.items()):
+        # Clear the keras session
+        tf.keras.backend.clear_session()
+
         # Build dataset
         train_dataset, test_dataset = build_dataset_trans(episodes, vocabulary, opt.ctx, opt.batch,
                                                           test_ep=ep, pre_trained=opt.pre)
