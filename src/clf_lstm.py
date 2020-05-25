@@ -59,10 +59,10 @@ if __name__ == "__main__":
             tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256)),
             tf.keras.layers.Dense(256, activation='relu'),
             #tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(4, activation='softmax')
+            tf.keras.layers.Dense(4)
         ])
 
-        clf_lstm.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+        clf_lstm.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                     optimizer=tf.keras.optimizers.Adam(1e-4), metrics=['accuracy'])
 
         history = clf_lstm.fit(train_dataset, epochs=10, validation_data=test_dataset)
