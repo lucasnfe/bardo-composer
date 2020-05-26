@@ -68,9 +68,6 @@ if __name__ == "__main__":
     accuracies = []
 
     for ep, _ in sorted(episodes.items()):
-        # Clear the keras session
-        tf.keras.backend.clear_session()
-
         # Build dataset
         train_dataset, test_dataset = build_dataset_trans(episodes, vocabulary, opt.ctx, opt.batch,
                                                           test_ep=ep, pre_trained=opt.pre)
@@ -86,3 +83,9 @@ if __name__ == "__main__":
                     optimizer=tf.keras.optimizers.Adam(1e-4), metrics=['accuracy'])
 
         history = clf_transf.fit(train_dataset, epochs=10, validation_data=test_dataset)
+
+        # Clear the keras session
+        tf.keras.backend.clear_session()
+
+        # Discard previous clf_transf
+        del clf_transf
