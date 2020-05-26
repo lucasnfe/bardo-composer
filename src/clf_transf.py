@@ -69,14 +69,12 @@ if __name__ == "__main__":
 
     for ep, _ in sorted(episodes.items()):
         # Build dataset
-        train_dataset, test_dataset = build_dataset_trans(episodes, vocabulary, opt.ctx, opt.batch,
-                                                          test_ep=ep, pre_trained=opt.pre)
+        train_dataset, test_dataset = build_dataset_trans(episodes, vocabulary, opt.ctx, opt.batch, test_ep=ep, pre_trained=opt.pre)
 
         if opt.pre:
             clf_transf = Bert.from_pretrained('bert-base-uncased', num_labels=4)
         else:
-            clf_config = tm.BertConfig(len(vocabulary), hidden_size=256, num_hidden_layers=2,
-                                                         num_attention_heads=8, num_labels=4)
+            clf_config = tm.BertConfig(len(vocabulary), hidden_size=256, num_hidden_layers=2, num_attention_heads=8, num_labels=4)
             clf_transf = Bert(clf_config)
 
         clf_transf.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -89,3 +87,6 @@ if __name__ == "__main__":
 
         # Discard previous clf_transf
         del clf_transf
+
+        # Call garbage collector
+        gc.collect()
