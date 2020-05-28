@@ -43,7 +43,7 @@ def build_dataset(dataset, batch_size, BUFFER_SIZE=10000):
     tf_dataset = tf_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
     tf_dataset = tf_dataset.shuffle(BUFFER_SIZE)
-    tf_dataset = tf_dataset.padded_batch(batch_size, padded_shapes=([None],[None], [None]), padding_values=(1, 1, 1))
+    tf_dataset = tf_dataset.padded_batch(batch_size, padded_shapes=([None],[None], [1]), padding_values=(1, 1, 1))
 
     return tf_dataset
 
@@ -67,15 +67,15 @@ def evaluate(sentiment_model, test_dataset):
 
     return acc
 
-def fit(clf_gpt2, train_dataset, test_dataset, params_ft):
-    optimizer = tf.keras.optimizers.Adam(learning_rate=params_ft["lr"])
+def fit(clf_gpt2, train_dataset, test_dataset, params):
+    optimizer = tf.keras.optimizers.Adam(learning_rate=params["lr"])
 
     # Keep results for plotting
     train_loss_results = []
     train_accuracy_results = []
 
     best_accuracy = 0
-    for epoch in range(params_ft["epochs"]):
+    for epoch in range(params["epochs"]):
         epoch_loss_avg = tf.keras.metrics.Mean()
         epoch_accuracy = tf.keras.metrics.CategoricalAccuracy()
 
@@ -86,7 +86,7 @@ def fit(clf_gpt2, train_dataset, test_dataset, params_ft):
                 # training=training is needed only if there are layers with different
                 # behavior during training versus inference (e.g. Dropout).
                 y_hat2, y_hat1 = clf_gpt2(x, training=True)
-                loss_value = loss(y_hat1, y_hat2[:, -1, :], y1, y2, params_ft["alpha"])
+                loss_value = loss(y_hat1, y_hat2[:, -1, :], y1, y2, params["alpha"])
 
             grads = tape.gradient(loss_value, clf_gpt2.trainable_weights)
             optimizer.apply_gradients(zip(grads, clf_gpt2.trainable_weights))
@@ -124,39 +124,35 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     # Load training parameters
-    params_tm = {}
-    params_ft = {}
-
+    params = {}
     with open(opt.conf) as conf_file:
-        params = json.load(conf_file)
-        params_tm = params["transformer"]
-        params_ft = params["finetuner"]
+        params = json.load(conf_file)["clf_gpt2"]
 
     # Load char2idx dict from json file
-    with open(params_tm["vocab"]) as f:
+    with open(params["vocab"]) as f:
         vocab = json.load(f)
 
     # Build dataset from encoded unlabelled midis
-    train_labelled_text = load_dataset(params_ft["train"], vocab, params_tm["seqlen"])
-    test_labelled_text = load_dataset(params_ft["test"], vocab, params_tm["seqlen"])
+    train_labelled_text = load_dataset(params["train"], vocab, params["seqlen"])
+    test_labelled_text = load_dataset(params["test"], vocab, params["seqlen"])
 
-    train_sent_dataset = build_dataset(train_labelled_text, params_ft["batch"])
-    test_sent_dataset = build_dataset(test_labelled_text, params_ft["batch"])
+    train_sent_dataset = build_dataset(train_labelled_text, params["batch"])
+    test_sent_dataset = build_dataset(test_labelled_text, params["batch"])
 
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)
 
     # Create GPT2 languade model configuration
-    clf_gpt2_config = tm.GPT2Config(vocab_size, params_tm["seqlen"], params_tm["n_ctx"], params_tm["embed"],
-                                                params_tm["layers"], params_tm["heads"],
-                                                output_attentions=True, resid_pdrop=params_tm["drop"],
-                                                embd_pdrop=params_tm["drop"], attn_pdrop=params_tm["drop"])
+    clf_gpt2_config = tm.GPT2Config(vocab_size, params["seqlen"], params["n_ctx"], params["embed"],
+                                                params["layers"], params["heads"],
+                                                output_attentions=True, resid_pdrop=params["drop"],
+                                                embd_pdrop=params["drop"], attn_pdrop=params["drop"])
 
     # Load pre-trained GPT2 without language model head
     clf_gpt2 = GPT2Classifier(clf_gpt2_config, num_labels=4)
-    if params_ft["finetune"]:
+    if params["finetune"]:
         ckpt = tf.train.Checkpoint(net=clf_gpt2)
-        ckpt.restore(tf.train.latest_checkpoint(params_tm["check"]))
+        ckpt.restore(tf.train.latest_checkpoint(params["check"]))
 
     # Train pre-trained model as a classifier
-    fit(clf_gpt2, train_sent_dataset, test_sent_dataset, params_ft)
+    fit(clf_gpt2, train_sent_dataset, test_sent_dataset, params)
