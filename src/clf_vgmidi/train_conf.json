@@ -1,0 +1,28 @@
+{
+    "transformer": {
+        "check"    : "../../pretrained/transformer.ckpt",
+        "vocab"    : "../../pretrained/vocab.json",
+        "n_ctx"    : 1024,
+        "seqlen"   : 1024,
+        "embed"    : 512,
+        "heads"    : 8,
+        "layers"   : 4,
+        "warmup"   : 0.002,
+        "batch"    : 16,
+        "drop"     : 0.1
+    },
+    "finetuner": {
+        "train"    : "../../data/vgmidi/vgmidi_bardo_train.csv",
+        "test"     : "../../data/vgmidi/vgmidi_bardo_test.csv",
+        "check"    : "trained/finetuner/finetuner.ckpt",
+        "retrain"  : 2,
+        "epochs"   : 20,
+        "lr"       : 3e-5,
+        "schedule" : "warmup_linear",
+        "warmup"   : 0.001,
+        "batch"    : 32,
+        "drop"     : 0.1,
+        "alpha"    : 0.25,
+        "finetune" : true
+    }
+}
