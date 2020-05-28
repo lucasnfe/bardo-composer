@@ -10,9 +10,10 @@
         "embed"    : 512,
         "heads"    : 8,
         "layers"   : 4,
-        "warmup"   : 0.002,
         "batch"    : 16,
         "drop"     : 0.1,
+        "lr"       : 3e-5,
+        "epochs"   : 20,
         "alpha"    : 0.25,
         "finetune" : true
     }
