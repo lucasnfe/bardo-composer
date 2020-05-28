@@ -111,9 +111,9 @@ def fit(clf_gpt2, train_dataset, test_dataset, params):
         current_accuracy = evaluate(clf_gpt2, test_dataset)
         if current_accuracy > best_accuracy:
             print('\nEpoch %03d: val_acc improved from %0.5f to %0.5f,'
-                  ' saving model to %s' % (epoch + 1, best_accuracy, current_accuracy, params_ft["check"]))
+                  ' saving model to %s' % (epoch + 1, best_accuracy, current_accuracy, params["check"]))
 
-            clf_gpt2.save_weights(params_ft["check"])
+            clf_gpt2.save_weights(params["check"])
             best_accuracy = current_accuracy
 
 if __name__ == "__main__":
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     clf_gpt2 = GPT2Classifier(clf_gpt2_config, num_labels=4)
     if params["finetune"]:
         ckpt = tf.train.Checkpoint(net=clf_gpt2)
-        ckpt.restore(tf.train.latest_checkpoint(params["check"]))
+        ckpt.restore(tf.train.latest_checkpoint(params["pretr"]))
 
     # Train pre-trained model as a classifier
     fit(clf_gpt2, train_sent_dataset, test_sent_dataset, params)
