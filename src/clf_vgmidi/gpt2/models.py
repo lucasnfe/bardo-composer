@@ -17,6 +17,9 @@ class GPT2Classifier(tm.TFGPT2Model):
         # Extract features
         outputs = super().call(inputs, **kwargs)
 
+        #  Extract language model logits
+        lm_logits = self.transformer.wte(outputs[0], mode="linear", training=kwargs["training"])
+
         # Finetuner Emotion Head
         emotion_logits = self.emotion_head(outputs[0], training=kwargs["training"])
 
