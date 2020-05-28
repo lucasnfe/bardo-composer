@@ -11,11 +11,9 @@ import midi.encoder as me
 BUFFER_SIZE=10000
 
 class GPT2Classifier(tm.modeling_tf_gpt2.TFGPT2Model):
-    def __init__(self, config, num_labels=1, *inputs, **kwargs):
-        super().__init__(config, *inputs, **kwargs)
-
-        # self.dropout = tf.keras.layers.Dropout(0.5)
-        self.emotion_head = tf.keras.layers.Dense(num_labels)
+    # def __init__(self, config, *inputs, **kwargs):
+    #     super().__init__(config, *inputs, **kwargs)
+    #     # self.emotion_head = tf.keras.layers.Dense(4)
 
     def call(self, inputs, **kwargs):
         # Extract features
@@ -25,22 +23,23 @@ class GPT2Classifier(tm.modeling_tf_gpt2.TFGPT2Model):
         # lm_logits = self.transformer.wte(outputs[0], mode="linear", training=kwargs["training"])
 
         # Finetuner Emotion Head
-        emotion_logits = self.emotion_head(outputs[0], training=kwargs["training"])
+        # emotion_logits = self.emotion_head(outputs[0], training=kwargs["training"])
 
-        return emotion_logits
+        return outputs[0][:,-1,:]
 
 def load_dataset(datapath, vocab, seq_length):
     dataset = []
 
     data = csv.DictReader(open(datapath, "r"))
     for row in data:
-        filepath, label = row["filepath"], row["label"]
+        filepath, label = row["filepath"], int(row["label"])
 
         piece_path = os.path.join(os.path.dirname(datapath), filepath)
         piece_text = me.load_file(piece_path).split(" ")
         tokens = [vocab[c] for c in piece_text]
 
-        dataset.append((tokens, [label]))
+        if len(tokens) < seq_length:
+            dataset.append((tokens, [label]))
 
     return dataset
 
@@ -77,15 +76,18 @@ if __name__ == "__main__":
 
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)
+    print(vocab_size)
 
     # Create GPT2 languade model configuration
-    clf_gpt2_config = tm.GPT2Config(vocab_size, params["seqlen"], params["n_ctx"], params["embed"],
-                                                params["layers"], params["heads"],
-                                                output_attentions=True, resid_pdrop=params["drop"],
-                                                embd_pdrop=params["drop"], attn_pdrop=params["drop"])
+    clf_config = tm.GPT2Config(vocab_size, params["seqlen"], params["n_ctx"], params["embed"], params["layers"], params["heads"],
+                               resid_pdrop=params["drop"], embd_pdrop=params["drop"], attn_pdrop=params["drop"])
 
     # Load pre-trained GPT2 without language model head
-    clf_gpt2 = GPT2Classifier(clf_gpt2_config, num_labels=4)
+    clf_gpt2 = tf.keras.Sequential([
+        GPT2Classifier(clf_config),
+        tf.keras.layers.Dense(4)
+    ])
+
     if params["finetune"]:
         ckpt = tf.train.Checkpoint(net=clf_gpt2)
         ckpt.restore(tf.train.latest_checkpoint(params["pretr"]))

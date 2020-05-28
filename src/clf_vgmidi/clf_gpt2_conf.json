@@ -14,7 +14,6 @@
         "drop"     : 0.1,
         "lr"       : 3e-5,
         "epochs"   : 20,
-        "alpha"    : 0.25,
         "finetune" : true
     }
 }
