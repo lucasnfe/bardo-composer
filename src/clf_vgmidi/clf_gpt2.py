@@ -11,20 +11,8 @@ import midi.encoder as me
 BUFFER_SIZE=10000
 
 class GPT2Classifier(tm.modeling_tf_gpt2.TFGPT2Model):
-    # def __init__(self, config, *inputs, **kwargs):
-    #     super().__init__(config, *inputs, **kwargs)
-    #     # self.emotion_head = tf.keras.layers.Dense(4)
-
     def call(self, inputs, **kwargs):
-        # Extract features
         outputs = super().call(inputs, **kwargs)
-
-        #  Extract language model logits
-        # lm_logits = self.transformer.wte(outputs[0], mode="linear", training=kwargs["training"])
-
-        # Finetuner Emotion Head
-        # emotion_logits = self.emotion_head(outputs[0], training=kwargs["training"])
-
         return outputs[0][:,-1,:]
 
 def load_dataset(datapath, vocab, seq_length):
@@ -76,7 +64,6 @@ if __name__ == "__main__":
 
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)
-    print(vocab_size)
 
     # Create GPT2 languade model configuration
     clf_config = tm.GPT2Config(vocab_size, params["seqlen"], params["n_ctx"], params["embed"], params["layers"], params["heads"],
@@ -95,4 +82,4 @@ if __name__ == "__main__":
     clf_gpt2.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                 optimizer=tf.keras.optimizers.Adam(params["lr"]), metrics=['accuracy'])
 
-    history = clf_gpt2.fit(train_dataset, epochs=10, validation_data=test_dataset)
+    history = clf_gpt2.fit(train_dataset, epochs=params["epochs"], validation_data=test_dataset)
