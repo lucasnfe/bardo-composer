@@ -11,9 +11,14 @@ import midi.encoder as me
 BUFFER_SIZE=10000
 
 class GPT2Classifier(tm.modeling_tf_gpt2.TFGPT2Model):
+    def __init__(self, config, *inputs, **kwargs):
+        super().__init__(config, *inputs, **kwargs)
+        self.emotion_head = tf.keras.layers.Dense(4, name="emotion_head")
+
     def call(self, inputs, **kwargs):
-        outputs = super().call(inputs, **kwargs)
-        return outputs[0][:,-1,:]
+        gpt_outputs = super().call(inputs, **kwargs)
+        emotion_logits = self.emotion_head(gpt_outputs[0])
+        return emotion_logits
 
 def load_dataset(datapath, vocab, seq_length):
     dataset = []
@@ -70,11 +75,7 @@ if __name__ == "__main__":
                                resid_pdrop=params["drop"], embd_pdrop=params["drop"], attn_pdrop=params["drop"])
 
     # Load pre-trained GPT2 without language model head
-    clf_gpt2 = tf.keras.Sequential([
-        GPT2Classifier(clf_config),
-        tf.keras.layers.Dense(4)
-    ])
-
+    clf_gpt2 = GPT2Classifier(clf_config)
     if params["finetune"]:
         ckpt = tf.train.Checkpoint(net=clf_gpt2)
         ckpt.restore(tf.train.latest_checkpoint(params["pretr"]))
