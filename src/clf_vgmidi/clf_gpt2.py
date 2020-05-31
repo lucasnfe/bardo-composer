@@ -31,8 +31,7 @@ def load_dataset(datapath, vocab, seq_length):
         piece_text = me.load_file(piece_path).split(" ")
         tokens = [vocab[c] for c in piece_text]
 
-        if len(tokens) < seq_length:
-            dataset.append((tokens, [label]))
+        dataset.append((tokens[:seq_length], [label]))
 
     return dataset
 
