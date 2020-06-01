@@ -6,10 +6,7 @@ from data_dnd import *
 
 BUFFER_SIZE=10000
 
-class Bert(tm.TFBertForSequenceClassification):
-    def call(self, inputs, **kwargs):
-        outputs = super().call(inputs, **kwargs)
-        return outputs[0]
+from models import *
 
 def build_dataset_bert(episodes, vocabulary, context_size, batch_size, test_ep, pre_trained=False):
     (X_train, Y_train), (X_test, Y_test) = build_dataset(episodes, vocabulary, context_size, test_ep)

@@ -1,4 +1,9 @@
+import json
+import argparse
+import numpy as np
 import tensorflow as tf
+
+from clf_dnd.models import *
 from clf_vgmidi.models import *
 
 def load_language_model(vocab_size, params, path):
@@ -13,9 +18,9 @@ def load_language_model(vocab_size, params, path):
 
     return language_model
 
-def load_clf_dnd(path):
+def load_clf_dnd(vocab_size, path):
     # Instanciate Bert text emotion classifier
-    bert_config = tm.BertConfig(len(vocabulary), hidden_size=256, num_hidden_layers=2, num_attention_heads=8, num_labels=4)
+    bert_config = tm.BertConfig(vocab_size, hidden_size=256, num_hidden_layers=2, num_attention_heads=8, num_labels=4)
 
     # Load Bert trained weights
     clf_dnd = Bert(bert_config)
@@ -30,7 +35,7 @@ def load_clf_vgmidi(vocab_size, params, path="../trained/clf_vgmidi.ckpt"):
                                resid_pdrop=params["drop"], embd_pdrop=params["drop"], attn_pdrop=params["drop"])
 
     # Load pre-trained GPT2 without language model head
-    clf_vgmidi = GPT2Classifier(clf_config)
+    clf_vgmidi = GPT2Classifier(gpt2_config)
     ckpt = tf.train.Checkpoint(net=clf_vgmidi)
     ckpt.restore(tf.train.latest_checkpoint(path))
 
@@ -41,7 +46,6 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser(description='midi_generator.py')
-    parser.add_argument('--conf', type=str, required=True, help="JSON file with training parameters.")
     parser.add_argument('--mode', type=str, default="sample", help="Generation strategy.")
     parser.add_argument('--init', type=str, required=False, help="Seed text to start generation.")
     parser.add_argument('--glen', type=int, default=256, help="Length of generated midi.")
@@ -52,11 +56,11 @@ if __name__ == "__main__":
 
     # Load training parameters
     params = {}
-    with open(opt.conf) as conf_file:
+    with open("clf_vgmidi/clf_gpt2_conf.json") as conf_file:
         params = json.load(conf_file)["clf_gpt2"]
 
     # Load char2idx dict from json file
-    with open(params["vocab"]) as f:
+    with open("../trained/vocab.json") as f:
         vocab = json.load(f)
 
     # Calculate vocab_size from char2idx dict
@@ -69,4 +73,4 @@ if __name__ == "__main__":
     clf_vgmidi = load_clf_vgmidi(vocab_size, params, "../trained/clf_vgmidi.ckpt/clf_vgmidi")
 
     # Load generative language model
-    clf_dnd = load_clf_dnd("../trained/clf_dnd.ckpt/clf_dnd")
+    clf_dnd = load_clf_dnd(vocab_size, "../trained/clf_dnd.ckpt/clf_dnd")
