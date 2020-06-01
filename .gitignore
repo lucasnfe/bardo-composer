@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # Don't load large trained models
-pretrained/
+trained/

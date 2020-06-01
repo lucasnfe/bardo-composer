@@ -10,15 +10,7 @@ import midi.encoder as me
 
 BUFFER_SIZE=10000
 
-class GPT2Classifier(tm.modeling_tf_gpt2.TFGPT2Model):
-    def __init__(self, config, *inputs, **kwargs):
-        super().__init__(config, *inputs, **kwargs)
-        self.emotion_head = tf.keras.layers.Dense(4, name="emotion_head")
-
-    def call(self, inputs, **kwargs):
-        gpt_outputs = super().call(inputs, **kwargs)
-        emotion_logits = self.emotion_head(gpt_outputs[0])
-        return emotion_logits
+from models import *
 
 def load_dataset(datapath, vocab, seq_length):
     dataset = []
@@ -82,4 +74,7 @@ if __name__ == "__main__":
     clf_gpt2.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                 optimizer=tf.keras.optimizers.Adam(params["lr"]), metrics=['accuracy'])
 
-    history = clf_gpt2.fit(train_dataset, epochs=params["epochs"], validation_data=test_dataset)
+    checkpoint = tf.keras.callbacks.ModelCheckpoint('../trained/clf_gpt2.ckpt',
+        monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True)
+
+    history = clf_gpt2.fit(train_dataset, epochs=params["epochs"], validation_data=test_dataset, callbacks=[checkpoint])

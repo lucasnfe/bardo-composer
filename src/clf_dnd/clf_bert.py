@@ -80,7 +80,10 @@ if __name__ == "__main__":
         clf_transf.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                     optimizer=tf.keras.optimizers.Adam(1e-4), metrics=['accuracy'])
 
-        history = clf_transf.fit(train_dataset, epochs=10, validation_data=test_dataset)
+        checkpoint = tf.keras.callbacks.ModelCheckpoint('../trained/clf_bert.ckpt',
+            monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True)
+
+        history = clf_transf.fit(train_dataset, epochs=10, validation_data=test_dataset, callbacks=[checkpoint])
 
         # Clear the keras session
         tf.keras.backend.clear_session()

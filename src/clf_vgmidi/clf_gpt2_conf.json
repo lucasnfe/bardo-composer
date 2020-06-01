@@ -2,9 +2,9 @@
     "clf_gpt2": {
         "train"    : "../../data/vgmidi/vgmidi_bardo_train.csv",
         "test"     : "../../data/vgmidi/vgmidi_bardo_test.csv",
-        "pretr"    : "../../pretrained/transformer.ckpt",
-        "vocab"    : "../../pretrained/vocab.json",
-        "check"    : "../../pretrained/clf_gp2.ckpt",
+        "pretr"    : "../../trained/transformer.ckpt",
+        "vocab"    : "../../trained/vocab.json",
+        "check"    : "../../trained/clf_gp2.ckpt",
         "n_ctx"    : 1024,
         "seqlen"   : 1024,
         "embed"    : 512,
