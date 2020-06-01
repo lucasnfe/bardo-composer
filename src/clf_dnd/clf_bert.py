@@ -81,7 +81,7 @@ if __name__ == "__main__":
                     optimizer=tf.keras.optimizers.Adam(1e-4), metrics=['accuracy'])
 
         checkpoint = tf.keras.callbacks.ModelCheckpoint('../trained/clf_bert.ckpt',
-            monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True)
+            monitor='val_accuracy', verbose=1, save_best_only=True, save_weights_only=True)
 
         history = clf_transf.fit(train_dataset, epochs=10, validation_data=test_dataset, callbacks=[checkpoint])
 

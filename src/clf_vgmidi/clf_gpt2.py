@@ -75,6 +75,6 @@ if __name__ == "__main__":
                 optimizer=tf.keras.optimizers.Adam(params["lr"]), metrics=['accuracy'])
 
     checkpoint = tf.keras.callbacks.ModelCheckpoint('../trained/clf_gpt2.ckpt',
-        monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True)
+        monitor='val_accuracy', verbose=1, save_best_only=True, save_weights_only=True)
 
     history = clf_gpt2.fit(train_dataset, epochs=params["epochs"], validation_data=test_dataset, callbacks=[checkpoint])

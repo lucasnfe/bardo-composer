@@ -10,8 +10,8 @@
         "embed"    : 512,
         "heads"    : 8,
         "layers"   : 4,
-        "batch"    : 16,
-        "drop"     : 0.1,
+        "batch"    : 8,
+        "drop"     : 0.25,
         "lr"       : 3e-5,
         "epochs"   : 20,
         "finetune" : true
