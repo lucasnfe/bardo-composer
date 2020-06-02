@@ -82,9 +82,9 @@ def generate_midi(generation_params, language_model, clf_vgmidi, clf_dnd):
         # Classifiy emotion considering all possible tokens
         music_x = np.concatenate((generated_tiled, top_tokens_tiled), axis=1)
         music_y = clf_vgmidi(music_x, training=False)
-        music_p = tf.math.sigmoid(music_y).numpy()
+        music_p = tf.math.softmax(music_y, axis=1).numpy()
 
-        #print(music_p)
+        print(music_p)
         top_probs = top_probs.numpy().squeeze()
         top_tokens = top_tokens.numpy().squeeze()
 
