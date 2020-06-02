@@ -77,7 +77,7 @@ if __name__ == "__main__":
         clf_transf.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                     optimizer=tf.keras.optimizers.Adam(1e-4), metrics=['accuracy'])
 
-        checkpoint = tf.keras.callbacks.ModelCheckpoint('../trained/clf_bert.ckpt',
+        checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_bert.ckpt/clf_bert_' + ep + "/clf_bert",
             monitor='val_accuracy', verbose=1, save_best_only=True, save_weights_only=True)
 
         history = clf_transf.fit(train_dataset, epochs=10, validation_data=test_dataset, callbacks=[checkpoint])
@@ -87,6 +87,3 @@ if __name__ == "__main__":
 
         # Discard previous clf_transf
         del clf_transf
-
-        # Call garbage collector
-        gc.collect()
