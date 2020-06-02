@@ -9,7 +9,7 @@ BUFFER_SIZE=10000
 from models import *
 
 def build_dataset_bert(episodes, vocabulary, context_size, batch_size, test_ep, pre_trained=False):
-    (X_train, Y_train), (X_test, Y_test) = build_dataset(episodes, vocabulary, context_size, test_ep)
+    (X_train, Y1_train, Y2_train), (X_test, Y1_test, Y2_test) = build_dataset(episodes, vocabulary, context_size, test_ep)
 
     if pre_trained:
         tokenizer = tm.BertTokenizer.from_pretrained('bert-base-uncased')
@@ -23,11 +23,11 @@ def build_dataset_bert(episodes, vocabulary, context_size, batch_size, test_ep, 
             X_train[i] = [vocabulary[w] for w in X_train[i].split()]
 
         # add tokenized sentence to the train dataset
-        train_examples.append((X_train[i], [Y_train[i]]))
+        train_examples.append((X_train[i], [Y1_train[i], Y2_train[i]]))
 
     train_dataset = tf.data.Dataset.from_generator(lambda: iter(train_examples), (tf.int32, tf.int32))
     train_dataset = train_dataset.shuffle(BUFFER_SIZE)
-    train_dataset = train_dataset.padded_batch(batch_size, padded_shapes=([None], [1]))
+    train_dataset = train_dataset.padded_batch(batch_size, padded_shapes=([None], [2]))
 
     test_examples = []
     for i in range(len(X_test)):
@@ -38,10 +38,10 @@ def build_dataset_bert(episodes, vocabulary, context_size, batch_size, test_ep, 
             X_test[i] = [vocabulary[w] for w in X_test[i].split()]
 
         # add tokenized sentence to the test dataset
-        test_examples.append((X_test[i], [Y_test[i]]))
+        test_examples.append((X_test[i], [Y1_test[i], Y2_test[i]]))
 
     test_dataset = tf.data.Dataset.from_generator(lambda: iter(test_examples), (tf.int32, tf.int32))
-    test_dataset = test_dataset.padded_batch(batch_size, padded_shapes=([None], [1]))
+    test_dataset = test_dataset.padded_batch(batch_size, padded_shapes=([None], [2]))
 
     return train_dataset, test_dataset
 
@@ -69,12 +69,12 @@ if __name__ == "__main__":
         train_dataset, test_dataset = build_dataset_bert(episodes, vocabulary, opt.ctx, opt.batch, test_ep=ep, pre_trained=opt.pre)
 
         if opt.pre:
-            clf_transf = Bert.from_pretrained('bert-base-uncased', num_labels=4)
+            clf_transf = Bert.from_pretrained('bert-base-uncased', num_labels=2)
         else:
-            clf_config = tm.BertConfig(len(vocabulary), hidden_size=256, num_hidden_layers=2, num_attention_heads=8, num_labels=4)
+            clf_config = tm.BertConfig(len(vocabulary), hidden_size=256, num_hidden_layers=2, num_attention_heads=8, num_labels=2)
             clf_transf = Bert(clf_config)
 
-        clf_transf.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        clf_transf.compile(loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
                     optimizer=tf.keras.optimizers.Adam(1e-4), metrics=['accuracy'])
 
         checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_bert.ckpt/clf_bert_' + ep + "/clf_bert",

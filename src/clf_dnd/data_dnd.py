@@ -17,8 +17,6 @@ STOPWORDS = ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you",
              "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too",
              "very", "s", "t", "can", "will", "just", "don", "should", "now"]
 
-LABEL_MAP = {"happy": 0, "agitated": 1, "suspense": 2, "calm": 3}
-
 def remove_stopwords(text):
     """Remove stop words"""
     # Remove stop words
@@ -53,12 +51,13 @@ def convert_numbers(text):
 def load_episodes(dirpath):
     episodes = {}
 
-    for dir, _ , files in os.walk(dirpath):
-        for i, fname in enumerate(files):
+    for file in os.listdir(dirpath):
+        f_name, f_ext = os.path.splitext(file)
+        if f_ext == ".txt":
             # Each file is a episode
-            episodes[fname] = {"X": [], "Y": []}
+            episodes[f_name] = {"X": [], "Y1": [], "Y2": []}
 
-            filepath = os.path.join(dir, fname)
+            filepath = os.path.join(dirpath, file)
             with open(filepath) as f:
                 for line in f:
                     example = line.rsplit(":", 1)
@@ -73,8 +72,13 @@ def load_episodes(dirpath):
                     x = remove_punctuation(x)
                     x = convert_numbers(x)
 
-                    episodes[fname]["X"].append(x)
-                    episodes[fname]["Y"].append(LABEL_MAP[y])
+                    # Separate valence and arousal values
+                    y = y.split(",")
+                    y1, y2 = int(y[0]), int(y[1])
+
+                    episodes[f_name]["X"].append(x)
+                    episodes[f_name]["Y1"].append(y1)
+                    episodes[f_name]["Y2"].append(y2)
 
     return episodes
 
@@ -105,15 +109,17 @@ def build_dataset(episodes, vocabulary, context_size=30, test_ep="ep1.txt"):
     train_episodes = dict(episodes)
     test_episode = train_episodes.pop(test_ep)
 
-    X_train, Y_train = [],[]
+    X_train, Y1_train, Y2_train = [],[],[]
 
     # Build train set
     for ep in train_episodes:
         X_train += parse_contexts(train_episodes[ep]["X"], context_size)
-        Y_train += train_episodes[ep]["Y"]
+        Y1_train += train_episodes[ep]["Y1"]
+        Y2_train += train_episodes[ep]["Y2"]
 
     # Build test set
     X_test = parse_contexts(test_episode["X"], context_size)
-    Y_test = test_episode["Y"]
+    Y1_test = test_episode["Y1"]
+    Y2_test = test_episode["Y2"]
 
-    return (X_train, Y_train), (X_test, Y_test)
+    return (X_train, Y1_train, Y2_train), (X_test, Y1_test, Y2_test)

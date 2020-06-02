@@ -6,7 +6,7 @@ from data_dnd import *
 BUFFER_SIZE=10000
 
 def build_dataset_lstm(episodes, vocabulary, context_size, batch_size, test_ep):
-    (X_train, Y_train), (X_test, Y_test) = build_dataset(episodes, vocabulary, context_size, test_ep)
+    (X_train, Y1_train, Y2_train), (X_test, Y1_test, Y2_test) = build_dataset(episodes, vocabulary, context_size, test_ep)
 
     train_examples = []
     for i in range(len(X_train)):
@@ -14,11 +14,11 @@ def build_dataset_lstm(episodes, vocabulary, context_size, batch_size, test_ep):
         X_train[i] = [vocabulary[w] for w in X_train[i].split()]
 
         # add tokenized sentence to the train dataset
-        train_examples.append((X_train[i], [Y_train[i]]))
+        train_examples.append((X_train[i], [Y1_train[i], Y2_train[i]]))
 
     train_dataset = tf.data.Dataset.from_generator(lambda: iter(train_examples), (tf.int32, tf.int32))
     train_dataset = train_dataset.shuffle(BUFFER_SIZE)
-    train_dataset = train_dataset.padded_batch(batch_size, padded_shapes=([None], [1]))
+    train_dataset = train_dataset.padded_batch(batch_size, padded_shapes=([None], [2]))
 
     test_examples = []
     for i in range(len(X_test)):
@@ -26,10 +26,10 @@ def build_dataset_lstm(episodes, vocabulary, context_size, batch_size, test_ep):
         X_test[i] = [vocabulary[w] for w in X_test[i].split()]
 
         # add tokenized sentence to the test dataset
-        test_examples.append((X_test[i], [Y_test[i]]))
+        test_examples.append((X_test[i], [Y1_test[i], Y2_test[i]]))
 
     test_dataset = tf.data.Dataset.from_generator(lambda: iter(test_examples), (tf.int32, tf.int32))
-    test_dataset = test_dataset.padded_batch(batch_size, padded_shapes=([None], [1]))
+    test_dataset = test_dataset.padded_batch(batch_size, padded_shapes=([None], [2]))
 
     return train_dataset, test_dataset
 
@@ -61,11 +61,11 @@ if __name__ == "__main__":
             tf.keras.layers.Embedding(len(vocabulary), 256),
             tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256)),
             tf.keras.layers.Dense(256, activation='relu'),
-            #tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(4)
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(2)
         ])
 
-        clf_lstm.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        clf_lstm.compile(loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
                     optimizer=tf.keras.optimizers.Adam(1e-4), metrics=['accuracy'])
 
         history = clf_lstm.fit(train_dataset, epochs=10, validation_data=test_dataset)
