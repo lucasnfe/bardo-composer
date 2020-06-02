@@ -5,7 +5,7 @@ from data_dnd import *
 
 BUFFER_SIZE=10000
 
-def build_dataset_lstm(episodes, vocabulary, context_size, batch_size, test_ep):
+def build_dataset_lstm(episodes, vocabulary, context_size, batch_size, test_ep, dimesion=0):
     (X_train, Y1_train, Y2_train), (X_test, Y1_test, Y2_test) = build_dataset(episodes, vocabulary, context_size, test_ep)
 
     train_examples = []
@@ -14,11 +14,16 @@ def build_dataset_lstm(episodes, vocabulary, context_size, batch_size, test_ep):
         X_train[i] = [vocabulary[w] for w in X_train[i].split()]
 
         # add tokenized sentence to the train dataset
-        train_examples.append((X_train[i], [Y1_train[i], Y2_train[i]]))
+        if dimesion == 0:
+            Y_train = Y1_train[i]
+        elif dimesion == 1:
+            Y_train = Y2_train[i]
+
+        train_examples.append((X_train[i], [Y_train]))
 
     train_dataset = tf.data.Dataset.from_generator(lambda: iter(train_examples), (tf.int32, tf.int32))
     train_dataset = train_dataset.shuffle(BUFFER_SIZE)
-    train_dataset = train_dataset.padded_batch(batch_size, padded_shapes=([None], [2]))
+    train_dataset = train_dataset.padded_batch(batch_size, padded_shapes=([None], [1]))
 
     test_examples = []
     for i in range(len(X_test)):
@@ -26,10 +31,15 @@ def build_dataset_lstm(episodes, vocabulary, context_size, batch_size, test_ep):
         X_test[i] = [vocabulary[w] for w in X_test[i].split()]
 
         # add tokenized sentence to the test dataset
-        test_examples.append((X_test[i], [Y1_test[i], Y2_test[i]]))
+        if dimesion == 0:
+            Y_test = Y1_test[i]
+        elif dimesion == 1:
+            Y_test = Y2_test[i]
+
+        test_examples.append((X_test[i], [Y_test]))
 
     test_dataset = tf.data.Dataset.from_generator(lambda: iter(test_examples), (tf.int32, tf.int32))
-    test_dataset = test_dataset.padded_batch(batch_size, padded_shapes=([None], [2]))
+    test_dataset = test_dataset.padded_batch(batch_size, padded_shapes=([None], [1]))
 
     return train_dataset, test_dataset
 
@@ -39,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument('--data', type=str, required=True, help="Dnd data.")
     parser.add_argument('--ctx', type=int, default=10, help="Context window size.")
     parser.add_argument('--batch', type=int, default=32, help="Batch size.")
+    parser.add_argument('--dim', type=int, default=0, help="Dimension to train.")
     opt = parser.parse_args()
 
     # Load episodes in a dictionary
@@ -51,18 +62,20 @@ if __name__ == "__main__":
     accuracies = []
 
     for ep, _ in sorted(episodes.items()):
+        print("------> Leave-one-out", ep)
+
         # Clear the keras session
         tf.keras.backend.clear_session()
 
         # Build dataset
-        train_dataset, test_dataset = build_dataset_lstm(episodes, vocabulary, opt.ctx, opt.batch, test_ep=ep)
+        train_dataset, test_dataset = build_dataset_lstm(episodes, vocabulary, opt.ctx, opt.batch, test_ep=ep, dimesion=opt.dim)
 
         clf_lstm = tf.keras.Sequential([
             tf.keras.layers.Embedding(len(vocabulary), 256),
             tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256)),
             tf.keras.layers.Dense(256, activation='relu'),
             tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(2)
+            tf.keras.layers.Dense(1)
         ])
 
         clf_lstm.compile(loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
