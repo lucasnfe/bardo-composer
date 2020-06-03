@@ -12,16 +12,21 @@ BUFFER_SIZE=10000
 
 from models import *
 
-def load_dataset(datapath, vocab, seq_length):
+def load_dataset(datapath, vocab, seq_length, dimesion=0):
     dataset = []
 
     data = csv.DictReader(open(datapath, "r"))
     for row in data:
-        filepath, label = row["filepath"], int(row["label"])
+        filepath, valence, arousal = row["filepath"], int(row["valence"]), int(row["arousal"])
 
         piece_path = os.path.join(os.path.dirname(datapath), filepath)
         piece_text = me.load_file(piece_path).split(" ")
         tokens = [vocab[c] for c in piece_text]
+
+        if dimesion == 0:
+            label = valence
+        elif dimesion == 1:
+            label = arousal
 
         dataset.append((tokens[:seq_length], [label]))
 
@@ -52,8 +57,8 @@ if __name__ == "__main__":
         vocab = json.load(f)
 
     # Build dataset from encoded unlabelled midis
-    train_text = load_dataset(params["train"], vocab, params["seqlen"])
-    test_text = load_dataset(params["test"], vocab, params["seqlen"])
+    train_text = load_dataset(params["train"], vocab, params["seqlen"], params["dimension"])
+    test_text = load_dataset(params["test"], vocab, params["seqlen"], params["dimension"])
 
     train_dataset = build_dataset(train_text, params["batch"])
     test_dataset = build_dataset(test_text, params["batch"])
@@ -74,7 +79,7 @@ if __name__ == "__main__":
     clf_gpt2.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                 optimizer=tf.keras.optimizers.Adam(params["lr"]), metrics=['accuracy'])
 
-    checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_gpt2.ckpt/clf_gpt2',
+    checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_gpt2.ckpt/clf_gpt2' + "_" + params["dimension"],
         monitor='val_accuracy', verbose=1, save_best_only=True, save_weights_only=True)
 
     history = clf_gpt2.fit(train_dataset, epochs=params["epochs"], validation_data=test_dataset, callbacks=[checkpoint])
