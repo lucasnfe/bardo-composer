@@ -79,7 +79,7 @@ if __name__ == "__main__":
     clf_gpt2.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                 optimizer=tf.keras.optimizers.Adam(params["lr"]), metrics=['accuracy'])
 
-    checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_gpt2.ckpt/clf_gpt2' + "_" + params["dimension"],
+    checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_gpt2.ckpt/clf_gpt2' + "_" + str(params["dimension"]) + "/clf_gpt2",
         monitor='val_accuracy', verbose=1, save_best_only=True, save_weights_only=True)
 
     history = clf_gpt2.fit(train_dataset, epochs=params["epochs"], validation_data=test_dataset, callbacks=[checkpoint])

@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 import clf_vgmidi.midi.encoder as me
 
-from clf_dnd.models import *
 from clf_vgmidi.models import *
 
 GENERATED_DIR = '../output'
@@ -39,7 +38,7 @@ def load_language_model(vocab_size, params, path):
 
 def load_clf_dnd(vocab_size, path):
     # Load Bert trained weights
-    clf_dnd = Bert.from_pretrained('bert-base-uncased', num_labels=4)
+    clf_dnd = tm.TFBertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=1)
     clf_dnd.load_weights(path).expect_partial()
 
     return clf_dnd
@@ -68,11 +67,11 @@ def classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal):
     music_valence = clf_vgmidi_valence(music_x, training=False)
     music_arousal = clf_vgmidi_arousal(music_x, training=False)
 
-    music_emotion = tf.math.sigmoid(tf.concat([story_valence, story_arousal], 1)).numpy().squeeze()
+    music_emotion = tf.math.sigmoid(tf.concat([music_valence, music_arousal], 1)).numpy().squeeze()
 
     return music_emotion
 
-def generate_midi(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal):
+def generate_midi(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer):
     story_emotion = generation_params["emotion"]
     init_tokens   = generation_params["init_tokens"]
     gen_len       = generation_params["length"]
@@ -163,6 +162,7 @@ if __name__ == "__main__":
     init_tokens = [vocab[word] for word in init_music.split(" ")]
 
     # Compute emotion in the given story using dnd classifier
+    tokenizer = tm.BertTokenizer.from_pretrained('bert-base-uncased')
     story_emotion = classify_story_emotion(opt.text, tokenizer, clf_dnd_valence, clf_dnd_arousal)
     print("story_emotion", story_emotion)
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
                              "emotion": story_emotion}
 
     # Generate a midi as text
-    generated_tokens = generate_midi(generation_params, language_model, clf_vgmidi, clf_dnd)
+    generated_tokens = generate_midi(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
 
     # Create idx2char from char2idx dict
     idx2char = {idx:char for char,idx in vocab.items()}
