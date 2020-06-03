@@ -51,17 +51,34 @@ def load_clf_vgmidi(vocab_size, params, path="../trained/clf_vgmidi.ckpt"):
 
     # Load pre-trained GPT2 without language model head
     clf_vgmidi = GPT2Classifier(gpt2_config)
-    clf_vgmidi.load_weights(path).expect_partial() 
+    clf_vgmidi.load_weights(path).expect_partial()
 
     return clf_vgmidi
 
-def generate_midi(generation_params, language_model, clf_vgmidi, clf_dnd):
-    init_tokens = generation_params["init_tokens"]
-    gen_len     = generation_params["length"]
-    n_ctx       = generation_params["n_ctx"]
-    top_k       = generation_params["top_k"]
-    story_emo   = generation_params["emotion"]
-   
+def classify_story_emotion(story_x, tokenizer, clf_dnd_valence, clf_dnd_arousal):
+    story_tokens = tf.constant(tokenizer.encode(story_x, add_special_tokens=True))[None, :]
+
+    story_valence = clf_dnd_valence(story_tokens)
+    story_arousal = clf_dnd_arousal(story_tokens)
+    story_emotion = tf.math.sigmoid(tf.concat([story_valence, story_arousal], 1)).numpy().squeeze()
+
+    return story_emotion
+
+def classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal):
+    music_valence = clf_vgmidi_valence(music_x, training=False)
+    music_arousal = clf_vgmidi_arousal(music_x, training=False)
+
+    music_emotion = tf.math.sigmoid(tf.concat([story_valence, story_arousal], 1)).numpy().squeeze()
+
+    return music_emotion
+
+def generate_midi(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal):
+    story_emotion = generation_params["emotion"]
+    init_tokens   = generation_params["init_tokens"]
+    gen_len       = generation_params["length"]
+    n_ctx         = generation_params["n_ctx"]
+    top_k         = generation_params["top_k"]
+
     generated = np.array([init_tokens])
 
     while generated.shape[-1] < gen_len:
@@ -75,20 +92,19 @@ def generate_midi(generation_params, language_model, clf_vgmidi, clf_dnd):
 
         # Create tensor with all possible tokens
         top_tokens_tiled = np.reshape(top_tokens, (top_tokens.shape[-1], 1))
-
-        # Concatenate sequence of tokens generated so far with all possible tokens
         generated_tiled = np.tile(generated, top_tokens_tiled.shape)
 
-        # Classifiy emotion considering all possible tokens
+        # Concatenate sequence of tokens generated so far with all possible tokens
         music_x = np.concatenate((generated_tiled, top_tokens_tiled), axis=1)
-        music_y = clf_vgmidi(music_x, training=False)
-        music_p = tf.math.softmax(music_y, axis=1).numpy()
 
-        print(music_p)
+        # Classifiy music emotion considering all possible tokens
+        music_emotion = classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal)
+
+        print(music_emotion)
         top_probs = top_probs.numpy().squeeze()
         top_tokens = top_tokens.numpy().squeeze()
 
-        prob_dist = np.apply_along_axis(sp.stats.wasserstein_distance, 1, music_p, story_emo)
+        prob_dist = np.apply_along_axis(sp.stats.wasserstein_distance, 1, music_emotion, story_emotion)
         final_p = (1.0/np.exp(prob_dist)) * top_probs
 
         sample = tf.random.categorical(tf.math.log([final_p]), 1)
@@ -135,27 +151,26 @@ if __name__ == "__main__":
     language_model = load_language_model(vocab_size, params, "../trained/transformer.ckpt")
 
     # Load generative language model
-    clf_vgmidi = load_clf_vgmidi(vocab_size, params, "../trained/clf_gpt2.ckpt/clf_gpt2")
+    clf_vgmidi_valence = load_clf_vgmidi(vocab_size, params, "../trained/clf_gpt2.ckpt/clf_gpt2_0/clf_gpt2")
+    clf_vgmidi_arousal = load_clf_vgmidi(vocab_size, params, "../trained/clf_gpt2.ckpt/clf_gpt2_1/clf_gpt2")
 
     # Load generative language model
-    clf_dnd = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep1.txt/clf_bert")
+    clf_dnd_valence = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep1_0/clf_bert")
+    clf_dnd_arousal = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep1_1/clf_bert")
 
     # Encode init text as sequence of indices
     init_music = preprocess_text(opt.init)
     init_tokens = [vocab[word] for word in init_music.split(" ")]
 
     # Compute emotion in the given story using dnd classifier
-    tokenizer = tm.BertTokenizer.from_pretrained('bert-base-uncased')
-    story_tokens = tf.constant(tokenizer.encode(opt.text, add_special_tokens=True))[None, :]
-    story_logits = clf_dnd(story_tokens)
-    story_emotion = tf.math.softmax(story_logits).numpy().squeeze()
+    story_emotion = classify_story_emotion(opt.text, tokenizer, clf_dnd_valence, clf_dnd_arousal)
     print("story_emotion", story_emotion)
 
     # Generation parameters
     generation_params = {"init_tokens": init_tokens,
                               "length": opt.glen,
                                "top_k": opt.topk,
-                               "n_ctx": params["n_ctx"], 
+                               "n_ctx": params["n_ctx"],
                              "emotion": story_emotion}
 
     # Generate a midi as text
