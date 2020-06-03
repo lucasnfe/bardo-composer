@@ -6,8 +6,6 @@ from data_dnd import *
 
 BUFFER_SIZE=10000
 
-from models import *
-
 def build_dataset_bert(episodes, vocabulary, context_size, batch_size, test_ep, pre_trained=False, dimesion=0):
     (X_train, Y1_train, Y2_train), (X_test, Y1_test, Y2_test) = build_dataset(episodes, vocabulary, context_size, test_ep)
 
@@ -38,7 +36,7 @@ def build_dataset_bert(episodes, vocabulary, context_size, batch_size, test_ep, 
     for i in range(len(X_test)):
         # Tokenize test sentence
         if pre_trained:
-            X_test[i] = tokenizer.encode(X_test[i], add_special_tokens=True)
+            X_test[i] = tokenizer.encode(X_test[i], add_special_tokens=False)
         else:
             X_test[i] = [vocabulary[w] for w in X_test[i].split()]
 
@@ -82,15 +80,15 @@ if __name__ == "__main__":
         train_dataset, test_dataset = build_dataset_bert(episodes, vocabulary, opt.ctx, opt.batch, test_ep=ep, pre_trained=opt.pre, dimesion=opt.dim)
 
         if opt.pre:
-            clf_transf = Bert.from_pretrained('bert-base-uncased', num_labels=1)
+            clf_transf = tm.TFBertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=1, hidden_dropout_prob=0.5, attention_probs_dropout_prob=0.5)
         else:
-            clf_config = tm.BertConfig(len(vocabulary), hidden_size=256, num_hidden_layers=2, num_attention_heads=8, num_labels=1)
-            clf_transf = Bert(clf_config)
+            clf_config = tm.BertConfig(len(vocabulary), hidden_size=768, num_hidden_layers=12, num_attention_heads=12, num_labels=1)
+            clf_transf = tm.TFBertForSequenceClassification(clf_config)
 
         clf_transf.compile(loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-                    optimizer=tf.keras.optimizers.Adam(1e-4), metrics=['accuracy'])
+                    optimizer=tf.keras.optimizers.Adam(3e-5), metrics=['accuracy'])
 
-        checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_bert.ckpt/clf_bert_' + ep + "_" + str(dim) + "/clf_bert",
+        checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_bert.ckpt/clf_bert_' + ep + "_" + str(opt.dim) + "/clf_bert",
             monitor='val_accuracy', verbose=1, save_best_only=True, save_weights_only=True)
 
         history = clf_transf.fit(train_dataset, epochs=10, validation_data=test_dataset, callbacks=[checkpoint])
