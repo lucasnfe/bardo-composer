@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
+from gnt_utils import *
+
 class BeamNode:
     def __init__(self, tokens, gen_ps):
         self._tokens = tokens
@@ -52,35 +54,40 @@ class BeamNode:
         return None
 
 def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer):
-    n_ctx       = generation_params["n_ctx"]
-    top_k       = generation_params["top_k"]
-    gen_len     = generation_params["length"]
-    init_tokens = generation_params["init_tokens"]
+    n_ctx         = generation_params["n_ctx"]
+    top_k         = generation_params["top_k"]
+    gen_len       = generation_params["length"]
+    init_tokens   = generation_params["init_tokens"]
+    story_emotion = generation_params["emotion"]
 
     # Batchfy tokens: [beam_width, 1]
     init_tokens = tf.expand_dims(init_tokens, axis=0)
 
-    generative_x = init_tokens[:, -n_ctx:]
-    generative_y = language_model(generative_x, training=False)
-    generative_p = tf.math.softmax(generative_y)
-    generative_p = tf.reshape(generative_p, [-1])
+    # Get probabilities of next token
+    token_p = run_language_model(init_tokens, language_model)
 
-    # Uncoment this block for picking topk
-    top_k_probs, top_k_tokens = tf.math.top_k(generative_p, top_k)
-    # Uncoment until here
+    # Get probabilities of next tokens being of the story emotion
+    music_x = concat_all_tokens(self._tokens, generative_p.shape[-1], gen_len)
+    music_valence, music_arousal = classify_music_emotion(music_x, story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal)
+
+    # Compute final log probability
+    final_logp = tf.math.log(generative_p * music_valence * music_arousal)
+
+    # Select top_k tokens to form first beam
+    top_k_probs, top_k_tokens = tf.math.top_k(final_logp, top_k)
+    top_probs = top_probs.numpy().squeeze()
+    top_tokens = top_tokens.numpy().squeeze()
 
     # Reshape init_tokens and top_k_probs to be of shape (beam_width, 1)
-    top_k_tokens = tf.reshape(top_k_tokens, (beam_width, 1))
-    top_k_probs = tf.reshape(top_k_probs, (beam_width, 1))
-
-    # Tile init tokens to be of shape (beam_width, 1)
-    init_tokens = tf.tile(init_tokens, [beam_width, 1])
+    top_k_tokens = tf.reshape(top_k_tokens, (top_k, 1))
+    top_k_probs = tf.reshape(top_k_probs, (top_k, 1))
 
     # Create first beam by concatenating init_tokens with the top_k tokens from the language model
-    top_k_branches = tf.concat([init_tokens, top_k_tokens], 1)
+    init_tokens = tf.tile(init_tokens, [top_k, 1])
+    init_beam = tf.concat([init_tokens, top_k_tokens], 1)
 
     # Create first beam step
-    c_node = BeamNode(top_k_branches, tf.math.log(top_k_probs))
+    c_node = BeamNode(init_beam, final_logp)
     print(c_node)
     quit()
 
