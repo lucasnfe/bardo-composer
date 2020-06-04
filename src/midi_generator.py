@@ -7,6 +7,7 @@ import tensorflow as tf
 import clf_vgmidi.midi.encoder as me
 
 from clf_vgmidi.models import *
+from gnt_beam.beam_search import *
 
 GENERATED_DIR = '../output'
 
@@ -83,7 +84,7 @@ def generate_midi(generation_params, language_model, clf_vgmidi_valence, clf_vgm
         generative_x = generated[:, -n_ctx:]
         generative_y = language_model(generative_x, training=False)
         generative_p = tf.math.softmax(generative_y)
-        
+
         # Get topk most likely tokens from the language model
         top_probs, top_tokens = tf.math.top_k(generative_p, top_k)
 
@@ -102,11 +103,11 @@ def generate_midi(generation_params, language_model, clf_vgmidi_valence, clf_vgm
         music_valence = music_emotion[:,0]
         if story_emotion[0] < 0.5:
             music_valence = 1.0 - music_valence
-            
+
         music_arousal = music_emotion[:,1]
         if story_emotion[1] < 0.5:
             music_arousal = 1.0 - music_arousal
-        
+
         top_probs = top_probs.numpy().squeeze()
         top_tokens = top_tokens.numpy().squeeze()
 
@@ -176,7 +177,7 @@ if __name__ == "__main__":
                              "emotion": story_emotion}
 
     # Generate a midi as text
-    generated_tokens = generate_midi(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
+    generated_tokens = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
 
     # Create idx2char from char2idx dict
     idx2char = {idx:char for char,idx in vocab.items()}
