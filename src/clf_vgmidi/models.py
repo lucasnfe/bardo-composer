@@ -11,7 +11,7 @@ class GPT2LanguadeModel(tm.modeling_tf_gpt2.TFGPT2Model):
 class GPT2Classifier(tm.modeling_tf_gpt2.TFGPT2Model):
     def __init__(self, config, *inputs, **kwargs):
         super().__init__(config, *inputs, **kwargs)
-        self.emotion_head = tf.keras.layers.Dense(4, name="emotion_head")
+        self.emotion_head = tf.keras.layers.Dense(1, name="emotion_head")
 
     def call(self, inputs, **kwargs):
         gpt_outputs = super().call(inputs, **kwargs)

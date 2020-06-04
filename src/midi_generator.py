@@ -18,8 +18,6 @@ def preprocess_text(text):
 
     # Remove \n
     tokens = list(filter(lambda t: t != "\n", tokens))
-
-    # Add \n
     tokens = ["\n"] + tokens
 
     return " ".join(tokens)
@@ -85,7 +83,7 @@ def generate_midi(generation_params, language_model, clf_vgmidi_valence, clf_vgm
         generative_x = generated[:, -n_ctx:]
         generative_y = language_model(generative_x, training=False)
         generative_p = tf.math.softmax(generative_y)
-
+        
         # Get topk most likely tokens from the language model
         top_probs, top_tokens = tf.math.top_k(generative_p, top_k)
 
@@ -95,23 +93,27 @@ def generate_midi(generation_params, language_model, clf_vgmidi_valence, clf_vgm
 
         # Concatenate sequence of tokens generated so far with all possible tokens
         music_x = np.concatenate((generated_tiled, top_tokens_tiled), axis=1)
+        music_x = np.pad(music_x, ((0, 0), (0, gen_len - music_x.shape[-1])), 'constant', constant_values=(1, 1))
 
         # Classifiy music emotion considering all possible tokens
         music_emotion = classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal)
 
-        print(music_emotion)
+        print("Music Emotion:", music_emotion)
+        music_valence = music_emotion[:,0]
+        if story_emotion[0] < 0.5:
+            music_valence = 1.0 - music_valence
+            
+        music_arousal = music_emotion[:,1]
+        if story_emotion[1] < 0.5:
+            music_arousal = 1.0 - music_arousal
+        
         top_probs = top_probs.numpy().squeeze()
         top_tokens = top_tokens.numpy().squeeze()
 
-        prob_dist = np.apply_along_axis(sp.stats.wasserstein_distance, 1, music_emotion, story_emotion)
-        final_p = (1.0/np.exp(prob_dist)) * top_probs
+        final_logp = tf.math.log(top_probs * music_valence * music_arousal)
 
-        sample = tf.random.categorical(tf.math.log([final_p]), 1)
-        predicted_token = top_tokens[int(sample)]
-
-        print(prob_dist)
-        print("top_probs", top_probs)
-        print("final_p", final_p)
+        ix = tf.random.categorical([final_logp], 1)
+        predicted_token = top_tokens[int(ix)]
 
         # Append predicted_id to generated midi
         predicted_token = np.reshape(predicted_token, (1, 1))

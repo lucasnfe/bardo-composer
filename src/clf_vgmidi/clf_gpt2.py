@@ -76,7 +76,7 @@ if __name__ == "__main__":
         ckpt = tf.train.Checkpoint(net=clf_gpt2)
         ckpt.restore(tf.train.latest_checkpoint(params["pretr"]))
 
-    clf_gpt2.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    clf_gpt2.compile(loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
                 optimizer=tf.keras.optimizers.Adam(params["lr"]), metrics=['accuracy'])
 
     checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_gpt2.ckpt/clf_gpt2' + "_" + str(params["dimension"]) + "/clf_gpt2",
