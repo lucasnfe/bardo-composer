@@ -52,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument('--text', type=str, required=True, help="Seed text to start generation.")
     parser.add_argument('--glen', type=int, default=256, help="Length of generated midi.")
     parser.add_argument('--topk', type=int, default=10, help="Top k tokens to consider when sampling.")
+    parser.add_argument('--beam', type=int, default=3, help="Beam Size.")
 
     opt = parser.parse_args()
 
@@ -92,6 +93,7 @@ if __name__ == "__main__":
                           "vocab_size": vocab_size,
                               "length": opt.glen,
                                "top_k": opt.topk,
+                          "beam_width": opt.beam,
                                "n_ctx": params["n_ctx"],
                              "emotion": story_emotion}
 
