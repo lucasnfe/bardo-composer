@@ -12,18 +12,18 @@ def preprocess_text(text):
 
     return " ".join(tokens)
 
-def concat_all_tokens(tokens, range, gen_len):
-    all_tokens = tf.range(range)
-    all_tokens = tf.reshape(all_tokens, (range, 1))
+def concat_all_tokens(tokens, shape, gen_len):
+    all_tokens = tf.range(shape[0])
+    all_tokens = tf.reshape(all_tokens, (shape[0], 1))
+    
+    all_tokens = tf.tile(all_tokens, tf.constant([shape[1], 1], tf.int32))
 
-    tokens = tf.tile(tokens, tf.constant([range, 1], tf.int32))
     tokens = tf.concat((tokens, all_tokens), axis=1)
-
-    tokens = tf.pad(tokens, tf.constant([[0, 0,], [0, gen_len - tokens.shape[-1]]]), "CONSTANT", constant_values=1)
+    #tokens = tf.pad(tokens, tf.constant([[0, 0,], [0, gen_len - tokens.shape[-1]]]), "CONSTANT", constant_values=1)
 
     return tokens
 
-def run_language_model(init_tokens, language_model):
+def run_language_model(init_tokens, language_model, n_ctx):
     generative_x = init_tokens[:, -n_ctx:]
     generative_y = language_model(generative_x, training=False)
     generative_p = tf.math.softmax(generative_y).numpy().squeeze()
@@ -44,6 +44,7 @@ def classify_music_emotion(music_x, story_emotion, clf_vgmidi_valence, clf_vgmid
     music_arousal = clf_vgmidi_arousal(music_x, training=False)
 
     music_emotion = tf.math.sigmoid(tf.concat([music_valence, music_arousal], 1)).numpy().squeeze()
+    print(music_emotion)
 
     music_valence = music_emotion[:,0]
     if story_emotion[0] < 0.5:

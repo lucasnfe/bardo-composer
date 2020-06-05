@@ -89,6 +89,7 @@ if __name__ == "__main__":
 
     # Generation parameters
     generation_params = {"init_tokens": init_tokens,
+                          "vocab_size": vocab_size,
                               "length": opt.glen,
                                "top_k": opt.topk,
                                "n_ctx": params["n_ctx"],
