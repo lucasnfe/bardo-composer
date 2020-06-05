@@ -32,13 +32,13 @@ class BeamNode:
         # Get probabilities of next token
         token_p = run_language_model(self._tokens, language_model, n_ctx)
         token_p = np.reshape(token_p, [-1])
-    
+
         # Batchfy music
         repeats = [vocab_size for i in range(self._tokens.shape[0])]
-        
+
         tokens = tf.repeat(self._tokens, repeats=repeats, axis=0)
         logps = tf.repeat(self._logps, repeats=repeats, axis=0).numpy().squeeze()
-        
+
         music_x = concat_all_tokens(tokens, (vocab_size, top_k), gen_len)
 
         # Get probabilities of next tokens being of the story emotion
@@ -49,6 +49,8 @@ class BeamNode:
 
         # Select top_k tokens to form first beam
         top_k_probs, top_k_tokens = tf.math.top_k(final_logp, top_k)
+        # top_k_tokens = tf.random.categorical([final_logp], top_k).numpy().squeeze()
+        # top_k_probs  = final_logp[top_k_tokens]
 
         # Reshape init_tokens and top_k_probs to be of shape (beam_width, 1)
         top_k_tokens = tf.reshape(top_k_tokens, (top_k, 1))
@@ -87,6 +89,9 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
 
     # Select top_k tokens to form first beam
     top_k_probs, top_k_tokens = tf.math.top_k(final_logp, top_k)
+
+    # top_k_tokens = tf.random.categorical([final_logp], top_k).numpy().squeeze()
+    # top_k_probs  = final_logp[top_k_tokens]
 
     # Reshape init_tokens and top_k_probs to be of shape (beam_width, 1)
     top_k_tokens = tf.reshape(top_k_tokens, (top_k, 1))
