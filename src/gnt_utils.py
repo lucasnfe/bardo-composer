@@ -15,7 +15,7 @@ def preprocess_text(text):
 def concat_all_tokens(tokens, shape, gen_len):
     all_tokens = tf.range(shape[0])
     all_tokens = tf.reshape(all_tokens, (shape[0], 1))
-    
+
     all_tokens = tf.tile(all_tokens, tf.constant([shape[1], 1], tf.int32))
 
     tokens = tf.concat((tokens, all_tokens), axis=1)
@@ -55,3 +55,12 @@ def classify_music_emotion(music_x, story_emotion, clf_vgmidi_valence, clf_vgmid
         music_arousal = 1.0 - music_arousal
 
     return music_valence, music_arousal
+
+def sample_without_replacement(logits, n_samples):
+    drawn_samples = []
+    while len(drawn_samples) < n_samples:
+        s = tf.random.categorical([logits], 1)
+        if s not in drawn_samples:
+            drawn_samples.append(s)
+
+    return drawn_samples

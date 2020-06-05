@@ -32,9 +32,9 @@ class BeamNode:
 
         # Get probabilities of next token
         token_p = run_language_model(self._tokens, language_model, n_ctx)
-        
+
         # Get the top_k token candidates
-        top_k_probs, top_k_tokens = tf.math.top_k(token_p, top_k) 
+        top_k_probs, top_k_tokens = tf.math.top_k(token_p, top_k)
         top_k_probs = np.reshape(top_k_probs, [-1])
         top_k_tokens = np.reshape(top_k_tokens, [top_k * beam_width, 1])
 
@@ -54,7 +54,7 @@ class BeamNode:
 
         # Select top_k tokens to form first beam
         #top_k_probs, top_k_tokens = tf.math.top_k(final_logp, top_k)
-        beam_tokens = tf.random.categorical([final_logp], beam_width).numpy().squeeze()
+        beam_tokens = sample_without_replacement(final_logp, beam_width)
         beam_probs = (np.log(music_valence) + np.log(music_arousal))[beam_tokens]
 
         # Reshape init_tokens and top_k_probs to be of shape (beam_width, 1)
@@ -82,7 +82,7 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
 
     # Get probabilities of next token
     token_p = run_language_model(init_tokens, language_model, n_ctx)
-    
+
     # Get the top_k token candidates
     top_k_probs, top_k_tokens = tf.math.top_k(token_p, top_k)
     top_k_tokens = tf.reshape(top_k_tokens, [top_k, 1])
@@ -90,7 +90,7 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
     # Batchfy music
     init_tokens = tf.tile(init_tokens, tf.constant([top_k, 1], tf.int32))
     init_tokens = tf.concat((init_tokens, top_k_tokens), axis=1)
-    
+
     # Get probabilities of next tokens being of the story emotion
     music_valence, music_arousal = classify_music_emotion(init_tokens, story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal)
 
@@ -100,10 +100,10 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
     final_logp = np.log(top_k_probs) + np.log(music_valence) + np.log(music_arousal)
 
     # Select top_k tokens to form first beam
-    beam_tokens = tf.random.categorical([final_logp], beam_width).numpy().squeeze()
+    beam_tokens = sample_without_replacement(final_logp, beam_width)
     #beam_probs = final_logp[beam_tokens]
     beam_probs = (np.log(music_valence) + np.log(music_arousal))[beam_tokens]
-    
+
     # Reshape init_tokens and top_k_probs to be of shape (beam_width, 1)
     beam_tokens = tf.reshape(beam_tokens, (beam_width, 1))
     beam_probs = tf.reshape(beam_probs, (beam_width, 1))
