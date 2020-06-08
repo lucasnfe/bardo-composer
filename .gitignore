@@ -132,4 +132,5 @@ dmypy.json
 trained/
 
 *.txt
+data/dnd/*.py
 output/*.mid

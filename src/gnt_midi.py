@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)
-    
+
     # Create idx2char from char2idx dict
     idx2char = {idx:char for char,idx in vocab.items()}
 
@@ -107,14 +107,13 @@ if __name__ == "__main__":
 
         generation_params["emotion"] = classify_story_emotion(episode_sentences[-20:], tokenizer, clf_dnd_valence, clf_dnd_arousal)
         print(sentence, generation_params["emotion"])
-        
+
         # Generate a midi as text
         episode_tokens += beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
         generation_params["init_tokens"] = episode_tokens[-params["n_ctx"]:]
-        
+
     # Decode generated tokens
     episode_score = " ".join([idx2char[idx] for idx in episode_tokens])
-    
     print(episode_score)
 
     # Write piece as midi and wav
