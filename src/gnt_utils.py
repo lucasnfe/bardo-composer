@@ -44,7 +44,7 @@ def classify_music_emotion(music_x, story_emotion, clf_vgmidi_valence, clf_vgmid
     music_arousal = clf_vgmidi_arousal(music_x, training=False)
 
     music_emotion = tf.math.sigmoid(tf.concat([music_valence, music_arousal], 1)).numpy().squeeze()
-    print(music_emotion)
+    #print(music_emotion)
 
     music_valence = music_emotion[:,0]
     if story_emotion[0] < 0.5:
@@ -59,8 +59,7 @@ def classify_music_emotion(music_x, story_emotion, clf_vgmidi_valence, clf_vgmid
 def sample_without_replacement(logits, n_samples):
     drawn_samples = []
     while len(drawn_samples) < n_samples:
-        s = tf.random.categorical([logits], 1)
+        s = int(tf.random.categorical([logits], 1))
         if s not in drawn_samples:
             drawn_samples.append(s)
-
     return drawn_samples

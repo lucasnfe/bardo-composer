@@ -48,37 +48,42 @@ def convert_numbers(text):
 
     return " ".join(tokens)
 
+def load_episode(filepath):
+    X, Y1, Y2 = [], [], []
+    with open(filepath) as f:
+        for line in f:
+            example = line.rsplit(":", 1)
+            x, y = example[0], example[1].replace('\n', '')
+
+            # Convert to lower case
+            x = x.lower()
+
+            # Text pre-processing
+            x = remove_accented_chars(x)
+            x = remove_stopwords(x)
+            x = remove_punctuation(x)
+            x = convert_numbers(x)
+
+            # Separate valence and arousal values
+            y = y.split(",")
+            y1, y2 = int(y[0]), int(y[1])
+
+            X.append(x)
+            Y1.append(y1)
+            Y2.append(y2)
+
+    return X, Y1, Y2
+
 def load_episodes(dirpath):
     episodes = {}
 
     for file in os.listdir(dirpath):
         f_name, f_ext = os.path.splitext(file)
         if f_ext == ".txt":
-            # Each file is a episode
-            episodes[f_name] = {"X": [], "Y1": [], "Y2": []}
-
             filepath = os.path.join(dirpath, file)
-            with open(filepath) as f:
-                for line in f:
-                    example = line.rsplit(":", 1)
-                    x, y = example[0], example[1].replace('\n', '')
+            X, Y1, Y2 = load_episode(filepath)
 
-                    # Convert to lower case
-                    x = x.lower()
-
-                    # Text pre-processing
-                    x = remove_accented_chars(x)
-                    x = remove_stopwords(x)
-                    x = remove_punctuation(x)
-                    x = convert_numbers(x)
-
-                    # Separate valence and arousal values
-                    y = y.split(",")
-                    y1, y2 = int(y[0]), int(y[1])
-
-                    episodes[f_name]["X"].append(x)
-                    episodes[f_name]["Y1"].append(y1)
-                    episodes[f_name]["Y2"].append(y2)
+            episodes[f_name] = {"X": X, "Y1": Y1, "Y2": Y2}
 
     return episodes
 

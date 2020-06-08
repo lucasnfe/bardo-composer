@@ -8,6 +8,7 @@ import clf_vgmidi.midi.encoder as me
 
 from gnt_utils import *
 from clf_vgmidi.models import *
+from clf_dnd.data_dnd import *
 from gnt_beam.beam_search import *
 
 GENERATED_DIR = '../output'
@@ -48,8 +49,8 @@ if __name__ == "__main__":
     # Parse arguments
     parser = argparse.ArgumentParser(description='midi_generator.py')
     parser.add_argument('--mode', type=str, default="sample", help="Generation strategy.")
-    parser.add_argument('--init', type=str, required=True, help="Seed text to start generation.")
-    parser.add_argument('--text', type=str, required=True, help="Seed text to start generation.")
+    parser.add_argument('--ep',   type=str, required=True, help="Dnd episode to score.")
+    parser.add_argument('--init', type=str, required=True, help="Seed to start music generation.")
     parser.add_argument('--glen', type=int, default=256, help="Length of generated midi.")
     parser.add_argument('--topk', type=int, default=10, help="Top k tokens to consider when sampling.")
     parser.add_argument('--beam', type=int, default=3, help="Beam Size.")
@@ -65,8 +66,13 @@ if __name__ == "__main__":
     with open("../trained/vocab.json") as f:
         vocab = json.load(f)
 
+    X,_,_ = load_episode(opt.ep)
+
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)
+    
+    # Create idx2char from char2idx dict
+    idx2char = {idx:char for char,idx in vocab.items()}
 
     # Load generative language model
     language_model = load_language_model(vocab_size, params, "../trained/transformer.ckpt")
@@ -85,8 +91,6 @@ if __name__ == "__main__":
 
     # Compute emotion in the given story using dnd classifier
     tokenizer = tm.BertTokenizer.from_pretrained('bert-base-uncased')
-    story_emotion = classify_story_emotion(opt.text, tokenizer, clf_dnd_valence, clf_dnd_arousal)
-    print("story_emotion", story_emotion)
 
     # Generation parameters
     generation_params = {"init_tokens": init_tokens,
@@ -94,24 +98,26 @@ if __name__ == "__main__":
                               "length": opt.glen,
                                "top_k": opt.topk,
                           "beam_width": opt.beam,
-                               "n_ctx": params["n_ctx"],
-                             "emotion": story_emotion}
+                               "n_ctx": params["n_ctx"]}
 
-    # Generate a midi as text
-    generated_tokens = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
+    episode_tokens = list(init_tokens)
+    episode_sentences = []
+    for sentence in X:
+        episode_sentences += sentence
 
-    # Create idx2char from char2idx dict
-    idx2char = {idx:char for char,idx in vocab.items()}
-
+        generation_params["emotion"] = classify_story_emotion(episode_sentences[-20:], tokenizer, clf_dnd_valence, clf_dnd_arousal)
+        print(sentence, generation_params["emotion"])
+        
+        # Generate a midi as text
+        episode_tokens += beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
+        generation_params["init_tokens"] = episode_tokens[-params["n_ctx"]:]
+        
     # Decode generated tokens
-    generated_text = " ".join([idx2char[idx] for idx in generated_tokens])
+    episode_score = " ".join([idx2char[idx] for idx in episode_tokens])
+    
+    print(episode_score)
 
-    # Save independent pieces.
-    for i, piece_text in enumerate(generated_text.split("\n")):
-        piece_text = piece_text.strip()
-        if len(piece_text) > 0:
-            print(piece_text)
-
-            # Write piece as midi and wav
-            piece_path = os.path.join(GENERATED_DIR, "generated_" + str(i))
-            me.write(piece_text, piece_path)
+    # Write piece as midi and wav
+    episode_name = os.path.splitext(os.path.basename(opt.ep))[0]
+    piece_path = os.path.join(GENERATED_DIR, episode_name + "_score")
+    me.write(episode_score, piece_path)

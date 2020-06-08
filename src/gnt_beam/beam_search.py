@@ -19,7 +19,7 @@ class BeamNode:
 
     def get_top_gen_sequence(self):
         max_sent = tf.argmax(self._logps)
-        return self.tokens()[max_sent]
+        return list(self.tokens()[max_sent])
 
     def forward(self, generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer):
         story_emotion = generation_params["emotion"]
@@ -47,7 +47,7 @@ class BeamNode:
         music_x = tf.concat((tokens, top_k_tokens), axis=1)
 
         # Get probabilities of next tokens being of the story emotion
-        music_valence, music_arousal = classify_music_emotion(music_x, story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal)
+        music_valence, music_arousal = classify_music_emotion(music_x[:,-n_ctx:], story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal)
 
         # Compute final log probability
         final_logp = logps + np.log(top_k_probs) + np.log(music_valence) + np.log(music_arousal)
@@ -55,6 +55,7 @@ class BeamNode:
         # Select top_k tokens to form first beam
         #top_k_probs, top_k_tokens = tf.math.top_k(final_logp, top_k)
         beam_tokens = sample_without_replacement(final_logp, beam_width)
+        #beam_probs = final_logp[beam_tokens]
         beam_probs = (np.log(music_valence) + np.log(music_arousal))[beam_tokens]
 
         # Reshape init_tokens and top_k_probs to be of shape (beam_width, 1)
@@ -92,7 +93,7 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
     init_tokens = tf.concat((init_tokens, top_k_tokens), axis=1)
 
     # Get probabilities of next tokens being of the story emotion
-    music_valence, music_arousal = classify_music_emotion(init_tokens, story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal)
+    music_valence, music_arousal = classify_music_emotion(init_tokens[:,-n_ctx:], story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal)
 
     # Compute final log probability
     top_k_probs = top_k_probs.numpy().squeeze()
@@ -113,12 +114,12 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
     # Create first beam step
     c_node = BeamNode(init_beam, beam_probs)
 
-    for i in range(init_tokens.shape[-1], gen_len):
+    for i in range(gen_len):
         # Iterate on the list of adjacent nodes
         c_node = c_node.forward(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
-        print(c_node)
+        #print(c_node)
         # print(c_node.gen_ps())
         # print(c_node.sent_ps())
 
-    print(c_node.get_top_gen_sequence())
+    #print(c_node.get_top_gen_sequence())
     return c_node.get_top_gen_sequence()
