@@ -11,6 +11,7 @@ from clf_vgmidi.models import *
 from clf_dnd.data_dnd import *
 from gnt_beam.beam_search import *
 
+EPISODE_CTX = 20
 GENERATED_DIR = '../output'
 
 def load_language_model(vocab_size, params, path):
@@ -105,7 +106,7 @@ if __name__ == "__main__":
     for sentence in X:
         episode_sentences += sentence
 
-        generation_params["emotion"] = classify_story_emotion(episode_sentences[-20:], tokenizer, clf_dnd_valence, clf_dnd_arousal)
+        generation_params["emotion"] = classify_story_emotion(episode_sentences[-EPISODE_CTX:], tokenizer, clf_dnd_valence, clf_dnd_arousal)
         print(sentence, generation_params["emotion"])
 
         # Generate a midi as text
