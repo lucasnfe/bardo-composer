@@ -106,10 +106,11 @@ if __name__ == "__main__":
 
     try:
         for sentence in X:
-            episode_sentences += sentence
+            episode_sentences.append(sentence)
 
-            generation_params["emotion"] = classify_story_emotion(episode_sentences[-EPISODE_CTX:], tokenizer, clf_dnd_valence, clf_dnd_arousal)
-            print(sentence, generation_params["emotion"])
+            ctx_sentences = ' '.join(episode_sentences[-EPISODE_CTX:])
+            generation_params["emotion"] = classify_story_emotion(ctx_sentences, tokenizer, clf_dnd_valence, clf_dnd_arousal)
+            print(ctx_sentences, generation_params["emotion"])
 
             # Generate a midi as text
             episode_tokens += beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
