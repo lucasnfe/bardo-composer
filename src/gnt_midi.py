@@ -103,15 +103,20 @@ if __name__ == "__main__":
 
     episode_tokens = list(init_tokens)
     episode_sentences = []
-    for sentence in X:
-        episode_sentences += sentence
 
-        generation_params["emotion"] = classify_story_emotion(episode_sentences[-EPISODE_CTX:], tokenizer, clf_dnd_valence, clf_dnd_arousal)
-        print(sentence, generation_params["emotion"])
+    try:
+        for sentence in X:
+            episode_sentences += sentence
 
-        # Generate a midi as text
-        episode_tokens += beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
-        generation_params["init_tokens"] = episode_tokens[-params["n_ctx"]:]
+            generation_params["emotion"] = classify_story_emotion(episode_sentences[-EPISODE_CTX:], tokenizer, clf_dnd_valence, clf_dnd_arousal)
+            print(sentence, generation_params["emotion"])
+
+            # Generate a midi as text
+            episode_tokens += beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
+            generation_params["init_tokens"] = episode_tokens[-params["n_ctx"]:]
+
+    except KeyboardInterrupt:
+        print("Exiting due to keyboard interrupt.")
 
     # Decode generated tokens
     episode_score = " ".join([idx2char[idx] for idx in episode_tokens])
