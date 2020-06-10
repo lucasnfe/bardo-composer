@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 def preprocess_text(text):
@@ -63,3 +64,22 @@ def sample_without_replacement(logits, n_samples):
         if s not in drawn_samples:
             drawn_samples.append(s)
     return drawn_samples
+
+def compute_penalty(tokens_so_far, generative_p, pen_len, alpha=0.25, dont_penalize=[0,1]):
+    # Count occurences of each element
+    tokens_to_penalize = tokens_so_far[:, -pen_len:]
+    count = np.apply_along_axis(lambda x: np.bincount(x, minlength=generative_p.shape[-1]), axis=1, arr=tokens_to_penalize)
+
+    # Compute penalty per token
+    penalty = np.power(np.array(alpha), count)
+
+    # Penalty has to be it's reciprocal for logits that are greater than zero
+    # penalty = np.reciprocal(penalty, out=penalty, where=(generative_y > 0))
+
+    # Don't penalize tokens that are in dont_penalize list
+    indices_i = np.arange(tokens_so_far.shape[0]).reshape(tokens_so_far.shape[0], 1)
+    indices_j = dont_penalize
+    penalty[indices_i, indices_j] = 1.0
+    # penalty = penalty.squeeze()
+
+    return penalty

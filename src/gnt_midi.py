@@ -4,6 +4,18 @@ import argparse
 import scipy as sp
 import numpy as np
 import tensorflow as tf
+
+physical_devices = tf.config.list_physical_devices('GPU')
+print(physical_devices)
+try:
+  tf.config.experimental.set_memory_growth(physical_devices[0], True)
+  tf.config.experimental.set_memory_growth(physical_devices[1], True)
+  print("---> Memory Grow True")
+except:
+  print("---> Memory Grow False")
+  # Invalid device or cannot modify virtual devices once initialized.
+  pass
+
 import clf_vgmidi.midi.encoder as me
 
 from gnt_utils import *
@@ -108,13 +120,21 @@ if __name__ == "__main__":
         for sentence in X:
             episode_sentences.append(sentence)
 
+            # Slice sentences to form the current story context 
             ctx_sentences = ' '.join(episode_sentences[-EPISODE_CTX:])
+
+            # Get the emotion of the current story context
             generation_params["emotion"] = classify_story_emotion(ctx_sentences, tokenizer, clf_dnd_valence, clf_dnd_arousal)
             print(ctx_sentences, generation_params["emotion"])
 
-            # Generate a midi as text
-            episode_tokens += beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
+            # Generate music for this current story context
+            ctx_tokens = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
+            
+            # Remove init tokens before
+            episode_tokens += ctx_tokens
+
             generation_params["init_tokens"] = episode_tokens[-params["n_ctx"]:]
+            tf.keras.backend.clear_session()
 
     except KeyboardInterrupt:
         print("Exiting due to keyboard interrupt.")
