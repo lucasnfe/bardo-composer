@@ -7,14 +7,15 @@ import tensorflow as tf
 
 physical_devices = tf.config.list_physical_devices('GPU')
 print(physical_devices)
-try:
-  tf.config.experimental.set_memory_growth(physical_devices[0], True)
-  tf.config.experimental.set_memory_growth(physical_devices[1], True)
-  print("---> Memory Grow True")
-except:
-  print("---> Memory Grow False")
-  # Invalid device or cannot modify virtual devices once initialized.
-  pass
+
+#try:
+#  tf.config.experimental.set_memory_growth(physical_devices[0], True)
+#  tf.config.experimental.set_memory_growth(physical_devices[1], True)
+#  print("---> Memory Grow True")
+#except:
+#  print("---> Memory Grow False")
+#  # Invalid device or cannot modify virtual devices once initialized.
+#  pass
 
 import clf_vgmidi.midi.encoder as me
 
@@ -23,7 +24,7 @@ from clf_vgmidi.models import *
 from clf_dnd.data_dnd import *
 from gnt_beam.beam_search import *
 
-EPISODE_CTX = 20
+EPISODE_CTX = 5
 GENERATED_DIR = '../output'
 
 def load_language_model(vocab_size, params, path):
@@ -63,8 +64,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='midi_generator.py')
     parser.add_argument('--mode', type=str, default="sample", help="Generation strategy.")
     parser.add_argument('--ep',   type=str, required=True, help="Dnd episode to score.")
+    parser.add_argument('--fst',  type=int, default=0, help="Sentence index to start the score.")
+    parser.add_argument('--lst',  type=int, required=False, help="Sentence index to end the score.")
     parser.add_argument('--init', type=str, required=True, help="Seed to start music generation.")
-    parser.add_argument('--glen', type=int, default=256, help="Length of generated midi.")
     parser.add_argument('--topk', type=int, default=10, help="Top k tokens to consider when sampling.")
     parser.add_argument('--beam', type=int, default=3, help="Beam Size.")
 
@@ -79,7 +81,7 @@ if __name__ == "__main__":
     with open("../trained/vocab.json") as f:
         vocab = json.load(f)
 
-    X,_,_ = load_episode(opt.ep)
+    S,X,_,_ = load_episode(opt.ep)
 
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)
@@ -108,7 +110,6 @@ if __name__ == "__main__":
     # Generation parameters
     generation_params = {"init_tokens": init_tokens,
                           "vocab_size": vocab_size,
-                              "length": opt.glen,
                                "top_k": opt.topk,
                           "beam_width": opt.beam,
                                "n_ctx": params["n_ctx"]}
@@ -116,10 +117,27 @@ if __name__ == "__main__":
     episode_tokens = list(init_tokens)
     episode_sentences = []
 
-    try:
-        for sentence in X:
-            episode_sentences.append(sentence)
+    ix_fst = opt.fst
+    
+    # Check if last index was defined 
+    if opt.lst == None:
+        ix_lst = len(X) - 1
+    else:
+        ix_lst = opt.lst
 
+    try:
+        for i in range(len(X)):
+            episode_sentences.append(X[i])
+            if i < ix_fst:
+                continue
+
+            if i >= ix_lst:
+                break
+
+            # Get sentence duration
+            generation_params["length"] = S[i+1] - S[i] 
+            print(generation_params["length"])
+    
             # Slice sentences to form the current story context 
             ctx_sentences = ' '.join(episode_sentences[-EPISODE_CTX:])
 
@@ -128,14 +146,18 @@ if __name__ == "__main__":
             print(ctx_sentences, generation_params["emotion"])
 
             # Generate music for this current story context
-            ctx_tokens = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
+            ctx_tokens, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer, idx2char)
             
+            # Get the emotion of the generated music
+            music_emotion = classify_music_emotion(np.array([ctx_tokens]), clf_vgmidi_valence, clf_vgmidi_arousal)
+            print(ctx_text, music_emotion)
+
             # Remove init tokens before
             episode_tokens += ctx_tokens
 
-            generation_params["init_tokens"] = episode_tokens[-params["n_ctx"]:]
-            tf.keras.backend.clear_session()
+            generation_params["init_tokens"] = ctx_tokens[-params["n_ctx"]:]
 
+            print("==========", "\n")
     except KeyboardInterrupt:
         print("Exiting due to keyboard interrupt.")
 

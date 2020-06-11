@@ -152,7 +152,7 @@ def text2midi(text, tempo):
 
     return midi
 
-def parse_total_duration_from_text(text):
+def parse_total_duration_from_text(text, tempo=120):
     duration, total_duration = 0, 0
     for token in text.split(" "):
         if token[0] == ".":
@@ -161,7 +161,10 @@ def parse_total_duration_from_text(text):
         elif token[0] == "d":
             duration = int(token.split("_")[1])
 
-    return total_duration
+    # Compute duration of shortest note
+    min_duration = MIN_NOTE_MULTIPLIER * 60/tempo
+
+    return total_duration * min_duration
 
 def parse_notes_from_text(text, tempo):
     notes = []

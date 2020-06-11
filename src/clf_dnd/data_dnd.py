@@ -50,10 +50,10 @@ def convert_numbers(text):
     return " ".join(tokens)
 
 def load_episode(filepath):
-    X, Y1, Y2 = [], [], []
+    S, X, Y1, Y2 = [], [], [], []
     data = csv.DictReader(open(filepath, "r"))
     for row in data:
-        x, y1, y2 = row["text"], int(row["valence"]), int(row["arousal"])
+        s, x, y1, y2 = float(row["start"]), row["text"], int(row["valence"]), int(row["arousal"])
 
         # Convert to lower case
         x = x.lower()
@@ -64,11 +64,12 @@ def load_episode(filepath):
         x = remove_punctuation(x)
         x = convert_numbers(x)
 
+        S.append(s)
         X.append(x)
         Y1.append(y1)
         Y2.append(y2)
 
-    return X, Y1, Y2
+    return S, X, Y1, Y2
 
 def load_episodes(dirpath):
     episodes = {}
@@ -77,7 +78,7 @@ def load_episodes(dirpath):
         f_name, f_ext = os.path.splitext(file)
         if f_ext == ".txt":
             filepath = os.path.join(dirpath, file)
-            X, Y1, Y2 = load_episode(filepath)
+            _, X, Y1, Y2 = load_episode(filepath)
 
             episodes[f_name] = {"X": X, "Y1": Y1, "Y2": Y2}
 

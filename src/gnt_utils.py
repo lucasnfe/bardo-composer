@@ -25,27 +25,38 @@ def concat_all_tokens(tokens, shape, gen_len):
     return tokens
 
 def run_language_model(init_tokens, language_model, n_ctx):
-    generative_x = init_tokens[:, -n_ctx:]
-    generative_y = language_model(generative_x, training=False)
-    generative_p = tf.math.softmax(generative_y).numpy().squeeze()
+    with tf.device('/device:CPU:0'):
+        generative_x = init_tokens[:, -n_ctx:]
+        generative_y = language_model(generative_x, training=False)
+        #generative_p = tf.math.softmax(generative_y).numpy().squeeze()
 
-    return generative_p
+    return generative_y
 
 def classify_story_emotion(story_x, tokenizer, clf_dnd_valence, clf_dnd_arousal):
     story_tokens = tf.constant(tokenizer.encode(story_x, add_special_tokens=True))[None, :]
 
-    story_valence = clf_dnd_valence(story_tokens)
-    story_arousal = clf_dnd_arousal(story_tokens)
+    with tf.device('/GPU:0'):
+        story_valence = clf_dnd_valence(story_tokens)
+    with tf.device('/GPU:1'):
+        story_arousal = clf_dnd_arousal(story_tokens)
+    
     story_emotion = tf.math.sigmoid(tf.concat([story_valence, story_arousal], 1)).numpy().squeeze()
 
     return story_emotion
 
-def classify_music_emotion(music_x, story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal):
-    music_valence = clf_vgmidi_valence(music_x, training=False)
-    music_arousal = clf_vgmidi_arousal(music_x, training=False)
-
+def classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal):
+    with tf.device('/GPU:0'):
+        music_valence = clf_vgmidi_valence(music_x, training=False)
+    
+    with tf.device('/GPU:1'):
+        music_arousal = clf_vgmidi_arousal(music_x, training=False)
+    
     music_emotion = tf.math.sigmoid(tf.concat([music_valence, music_arousal], 1)).numpy().squeeze()
-    #print(music_emotion)
+
+    return music_emotion
+
+def compute_music_emotion_probability(music_x, story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal):
+    music_emotion = classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal) 
 
     music_valence = music_emotion[:,0]
     if story_emotion[0] < 0.5:
