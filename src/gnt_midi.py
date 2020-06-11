@@ -94,7 +94,8 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
 
             # Get sentence duration
             generation_params["length"] = duration
-            print(generation_params["length"])
+            generation_params["emotion"] = ctx_emotion
+            print(duration, ctx_emotion)
 
             # Generate music for this current story context
             ctx_tokens, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, idx2char)

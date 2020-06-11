@@ -25,7 +25,7 @@ def concat_all_tokens(tokens, shape, gen_len):
     return tokens
 
 def run_language_model(init_tokens, language_model, n_ctx):
-    with tf.device('/device:CPU:0'):
+    with tf.device('/GPU:0'):
         generative_x = init_tokens[:, -n_ctx:]
         generative_y = language_model(generative_x, training=False)
         #generative_p = tf.math.softmax(generative_y).numpy().squeeze()
