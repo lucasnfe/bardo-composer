@@ -57,7 +57,7 @@ def load_clf_vgmidi(vocab_size, params, path="../trained/clf_vgmidi.ckpt"):
 
     return clf_vgmidi
 
-def classify_story_emotion(ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal):
+def classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal):
     episode_sentences = []
 
     story_emotion = []
@@ -130,6 +130,32 @@ if __name__ == "__main__":
 
     opt = parser.parse_args()
 
+    # Load episodes (S is list of starting times and X is a list of sentences)
+    S,X,_,_ = load_episode(opt.ep)
+
+    # Set first and last indices of sentences in the story
+    ix_fst = opt.fst
+    if opt.lst == None:
+        ix_lst = len(X) - 1
+    else:
+        ix_lst = opt.lst
+
+    # Compute emotion in the given story using dnd classifier
+    tokenizer = tm.BertTokenizer.from_pretrained('bert-base-uncased')
+
+    # Load sentence classifier
+    clf_dnd_valence = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep1_0/clf_bert")
+    clf_dnd_arousal = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep1_1/clf_bert")
+
+    story_emotion = classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal)
+
+    # Clean up story classifier
+    del tokenizer
+    del clf_dnd_valence
+    del clf_dnd_arousal
+
+    tf.keras.backend.clear_session()
+
     # Load training parameters
     params = {}
     with open("clf_vgmidi/clf_gpt2_conf.json") as conf_file:
@@ -139,31 +165,15 @@ if __name__ == "__main__":
     with open("../trained/vocab.json") as f:
         vocab = json.load(f)
 
-    S,X,_,_ = load_episode(opt.ep)
-
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)
 
     # Create idx2char from char2idx dict
     idx2char = {idx:char for char,idx in vocab.items()}
 
-    # Load generative language model
-    language_model = load_language_model(vocab_size, params, "../trained/transformer.ckpt")
-
-    # Load generative language model
-    clf_vgmidi_valence = load_clf_vgmidi(vocab_size, params, "../trained/clf_gpt2.ckpt/clf_gpt2_0/clf_gpt2")
-    clf_vgmidi_arousal = load_clf_vgmidi(vocab_size, params, "../trained/clf_gpt2.ckpt/clf_gpt2_1/clf_gpt2")
-
-    # Load generative language model
-    clf_dnd_valence = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep1_0/clf_bert")
-    clf_dnd_arousal = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep1_1/clf_bert")
-
     # Encode init text as sequence of indices
     init_music = preprocess_text(opt.init)
     init_tokens = [vocab[word] for word in init_music.split(" ")]
-
-    # Compute emotion in the given story using dnd classifier
-    tokenizer = tm.BertTokenizer.from_pretrained('bert-base-uncased')
 
     # Generation parameters
     generation_params = {"init_tokens": init_tokens,
@@ -172,20 +182,12 @@ if __name__ == "__main__":
                           "beam_width": opt.beam,
                                "n_ctx": params["n_ctx"]}
 
+    # Load generative language model
+    language_model = load_language_model(vocab_size, params, "../trained/transformer.ckpt")
 
-    # Set first and last indices of sentences in the story
-    ix_fst = opt.fst
-    if opt.lst == None:
-        ix_lst = len(X) - 1
-    else:
-        ix_lst = opt.lst
-
-    story_emotion = classify_story_emotion(ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal)
-
-    # Clean up story classifier
-    del tokenizer
-    del clf_dnd_valence
-    del clf_dnd_arousal
+    # Load generative language model
+    clf_vgmidi_valence = load_clf_vgmidi(vocab_size, params, "../trained/clf_gpt2.ckpt/clf_gpt2_0/clf_gpt2")
+    clf_vgmidi_arousal = load_clf_vgmidi(vocab_size, params, "../trained/clf_gpt2.ckpt/clf_gpt2_1/clf_gpt2")
 
     episode_tokens = generate_music_with_emotion(story_emotion, generation_params, language_model,
                                                  (clf_vgmidi_valence, clf_vgmidi_arousal), idx2char)

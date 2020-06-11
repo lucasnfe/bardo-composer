@@ -22,7 +22,7 @@ class BeamNode:
         max_sent = tf.argmax(self._logps)
         return list(self.tokens()[max_sent])
 
-    def forward(self, generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer):
+    def forward(self, generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal):
         story_emotion = generation_params["emotion"]
         init_tokens   = generation_params["init_tokens"]
         gen_len       = generation_params["length"]
