@@ -57,13 +57,13 @@ class BeamNode:
         music_arousal = np.reciprocal(music_arousal, out=music_arousal, where=(top_k_probs < 0))
 
         # Compute final log probability
-        final_logp = logps + (top_k_probs * music_valence * music_arousal) 
+        final_logp = logps + (top_k_probs * music_valence * music_arousal)
 
         # Select top_k tokens to form first beam
         #top_k_probs, top_k_tokens = tf.math.top_k(final_logp, top_k)
         beam_tokens = sample_without_replacement(final_logp, beam_width)
         beam_probs = final_logp[beam_tokens]
-        
+
         #beam_probs = (logps + np.log(top_k_probs))[beam_tokens]
         #beam_probs = (np.log(top_k_probs) + np.log(music_valence) + np.log(music_arousal))[beam_tokens]
         #beam_probs = (np.log(music_valence) + np.log(music_arousal))[beam_tokens]
@@ -79,7 +79,7 @@ class BeamNode:
 
         return c_node
 
-def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer, idx2token):
+def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, idx2token):
     n_ctx         = generation_params["n_ctx"]
     top_k         = generation_params["top_k"]
     beam_width    = generation_params["beam_width"]
@@ -109,12 +109,12 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
     # Compute final log probability
     top_k_probs = top_k_probs.numpy().squeeze()
     top_k_tokens = top_k_tokens.numpy().squeeze()
-    
+
     music_valence = np.reciprocal(music_valence, out=music_valence, where=(top_k_probs < 0))
     music_arousal = np.reciprocal(music_arousal, out=music_arousal, where=(top_k_probs < 0))
 
     # Compute final log probability
-    final_logp = (top_k_probs * music_valence * music_arousal) 
+    final_logp = (top_k_probs * music_valence * music_arousal)
 
     # Select top_k tokens to form first beam
     beam_tokens = sample_without_replacement(final_logp, beam_width)
@@ -134,8 +134,8 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
     total_duration = 0
     while total_duration <= gen_len:
         # Iterate on the list of adjacent nodes
-        c_node = c_node.forward(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer)
-        
+        c_node = c_node.forward(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal)
+
         top_sequence = c_node.get_top_gen_sequence()
         top_sequence_without_init = top_sequence[len(init_tokens):]
 
@@ -149,4 +149,3 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
         # print(c_node.sent_ps())
 
     return top_sequence_without_init, top_text
-

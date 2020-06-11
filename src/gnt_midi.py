@@ -57,6 +57,63 @@ def load_clf_vgmidi(vocab_size, params, path="../trained/clf_vgmidi.ckpt"):
 
     return clf_vgmidi
 
+def classify_story_emotion(ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal):
+    episode_sentences = []
+
+    story_emotion = []
+    for i in range(len(X)):
+        episode_sentences.append(X[i])
+        if i < ix_fst:
+            continue
+
+        if i >= ix_lst:
+            break
+
+        # Get sentence duration
+        duration = S[i+1] - S[i]
+        print(duration)
+
+        # Slice sentences to form the current story context
+        ctx_sentences = ' '.join(episode_sentences[-EPISODE_CTX:])
+
+        # Get the emotion of the current story context
+        ctx_emotion = classify_sentence_emotion(ctx_sentences, tokenizer, clf_dnd_valence, clf_dnd_arousal)
+        print(ctx_sentences, ctx_emotion)
+
+        story_emotion.append((duration,ctx_emotion))
+
+    return story_emotion
+
+def generate_music_with_emotion(story_emotion, generation_params, language_model, clf_vgmidi, idx2char):
+    clf_vgmidi_valence, clf_vgmidi_arousal = clf_vgmidi
+
+    episode_tokens = list(generation_params["init_tokens"])
+    try:
+        for sentence in story_emotion:
+            duration, ctx_emotion = sentence
+
+            # Get sentence duration
+            generation_params["length"] = duration
+            print(generation_params["length"])
+
+            # Generate music for this current story context
+            ctx_tokens, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, idx2char)
+
+            # Get the emotion of the generated music
+            music_emotion = classify_music_emotion(np.array([ctx_tokens]), clf_vgmidi_valence, clf_vgmidi_arousal)
+            print(ctx_text, music_emotion)
+
+            # Remove init tokens before
+            episode_tokens += ctx_tokens
+
+            generation_params["init_tokens"] = ctx_tokens[-params["n_ctx"]:]
+
+            print("==========", "\n")
+    except KeyboardInterrupt:
+        print("Exiting due to keyboard interrupt.")
+
+    return episode_tokens
+
 if __name__ == "__main__":
     np.random.seed(42)
 
@@ -114,52 +171,23 @@ if __name__ == "__main__":
                           "beam_width": opt.beam,
                                "n_ctx": params["n_ctx"]}
 
-    episode_tokens = list(init_tokens)
-    episode_sentences = []
 
+    # Set first and last indices of sentences in the story
     ix_fst = opt.fst
-    
-    # Check if last index was defined 
     if opt.lst == None:
         ix_lst = len(X) - 1
     else:
         ix_lst = opt.lst
 
-    try:
-        for i in range(len(X)):
-            episode_sentences.append(X[i])
-            if i < ix_fst:
-                continue
+    story_emotion = classify_story_emotion(ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal)
 
-            if i >= ix_lst:
-                break
+    # Clean up story classifier
+    del tokenizer
+    del clf_dnd_valence
+    del clf_dnd_arousal
 
-            # Get sentence duration
-            generation_params["length"] = S[i+1] - S[i] 
-            print(generation_params["length"])
-    
-            # Slice sentences to form the current story context 
-            ctx_sentences = ' '.join(episode_sentences[-EPISODE_CTX:])
-
-            # Get the emotion of the current story context
-            generation_params["emotion"] = classify_story_emotion(ctx_sentences, tokenizer, clf_dnd_valence, clf_dnd_arousal)
-            print(ctx_sentences, generation_params["emotion"])
-
-            # Generate music for this current story context
-            ctx_tokens, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, tokenizer, idx2char)
-            
-            # Get the emotion of the generated music
-            music_emotion = classify_music_emotion(np.array([ctx_tokens]), clf_vgmidi_valence, clf_vgmidi_arousal)
-            print(ctx_text, music_emotion)
-
-            # Remove init tokens before
-            episode_tokens += ctx_tokens
-
-            generation_params["init_tokens"] = ctx_tokens[-params["n_ctx"]:]
-
-            print("==========", "\n")
-    except KeyboardInterrupt:
-        print("Exiting due to keyboard interrupt.")
+    episode_tokens = generate_music_with_emotion(story_emotion, generation_params, language_model,
+                                                 (clf_vgmidi_valence, clf_vgmidi_arousal), idx2char)
 
     # Decode generated tokens
     episode_score = " ".join([idx2char[idx] for idx in episode_tokens])

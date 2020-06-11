@@ -32,14 +32,14 @@ def run_language_model(init_tokens, language_model, n_ctx):
 
     return generative_y
 
-def classify_story_emotion(story_x, tokenizer, clf_dnd_valence, clf_dnd_arousal):
+def classify_sentence_emotion(story_x, tokenizer, clf_dnd_valence, clf_dnd_arousal):
     story_tokens = tf.constant(tokenizer.encode(story_x, add_special_tokens=True))[None, :]
 
     with tf.device('/GPU:0'):
         story_valence = clf_dnd_valence(story_tokens)
     with tf.device('/GPU:1'):
         story_arousal = clf_dnd_arousal(story_tokens)
-    
+
     story_emotion = tf.math.sigmoid(tf.concat([story_valence, story_arousal], 1)).numpy().squeeze()
 
     return story_emotion
@@ -47,16 +47,16 @@ def classify_story_emotion(story_x, tokenizer, clf_dnd_valence, clf_dnd_arousal)
 def classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal):
     with tf.device('/GPU:0'):
         music_valence = clf_vgmidi_valence(music_x, training=False)
-    
+
     with tf.device('/GPU:1'):
         music_arousal = clf_vgmidi_arousal(music_x, training=False)
-    
+
     music_emotion = tf.math.sigmoid(tf.concat([music_valence, music_arousal], 1)).numpy().squeeze()
 
     return music_emotion
 
 def compute_music_emotion_probability(music_x, story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal):
-    music_emotion = classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal) 
+    music_emotion = classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal)
 
     music_valence = music_emotion[:,0]
     if story_emotion[0] < 0.5:
