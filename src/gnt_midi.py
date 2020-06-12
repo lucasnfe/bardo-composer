@@ -5,24 +5,14 @@ import scipy as sp
 import numpy as np
 import tensorflow as tf
 
-physical_devices = tf.config.list_physical_devices('GPU')
-print(physical_devices)
-
-#try:
-#  tf.config.experimental.set_memory_growth(physical_devices[0], True)
-#  tf.config.experimental.set_memory_growth(physical_devices[1], True)
-#  print("---> Memory Grow True")
-#except:
-#  print("---> Memory Grow False")
-#  # Invalid device or cannot modify virtual devices once initialized.
-#  pass
-
+import clf_dnd.data_dnd as dnd
+import clf_vgmidi.data_vgmidi as vg
 import clf_vgmidi.midi.encoder as me
 
 from gnt_utils import *
 from clf_vgmidi.models import *
-from clf_dnd.data_dnd import *
-from gnt_beam.beam_search import *
+from generators.gnt_beam import *
+from generators.gnt_baseline import *
 
 EPISODE_CTX = 20
 GENERATED_DIR = '../output'
@@ -92,14 +82,14 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
 
     # Init episode score
     episode_tokens = list(generation_params["init_tokens"])
-    
+
     last_emotion = np.array([0, 0])
     try:
         for sentence in story_emotion:
             duration, ctx_emotion = sentence
 
             print(last_emotion, discretize_emotion(ctx_emotion))
-            
+
             # Restart init tokens when emotions are different
             if (discretize_emotion(ctx_emotion) != last_emotion).any():
                 print("CHANGED EMOTION!")
@@ -112,7 +102,10 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
             print(duration, discretize_emotion(ctx_emotion))
 
             # Generate music for this current story context
-            ctx_tokens, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, idx2char)
+            if generation_params["mode"] == "beam":
+                ctx_tokens, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, idx2char)
+            elif generation_params["mode"] == "baseline":
+                ctx_tokens, ctx_text = gnt_baseline(generation_params, idx2char)
 
             # Get the emotion of the generated music
             music_emotion = classify_music_emotion(np.array([generation_params["init_tokens"] + ctx_tokens]), clf_vgmidi_valence, clf_vgmidi_arousal)
@@ -121,7 +114,7 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
             # Remove init tokens before
             episode_tokens += ctx_tokens
 
-            generation_params["init_tokens"] = ctx_tokens[-params["n_ctx"]:]         
+            generation_params["init_tokens"] = ctx_tokens[-params["n_ctx"]:]
             last_emotion = discretize_emotion(ctx_emotion)
 
             print("==========", "\n")
@@ -135,7 +128,7 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser(description='midi_generator.py')
-    parser.add_argument('--mode', type=str, default="sample", help="Generation strategy.")
+    parser.add_argument('--mode', type=str, default="beam", help="Generation strategy.")
     parser.add_argument('--ep',   type=str, required=True, help="Dnd episode to score.")
     parser.add_argument('--fst',  type=int, default=0, help="Sentence index to start the score.")
     parser.add_argument('--lst',  type=int, required=False, help="Sentence index to end the score.")
@@ -144,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument('--beam', type=int, default=3, help="Beam Size.")
 
     opt = parser.parse_args()
-    
+
     # Load training parameters
     params = {}
     with open("clf_vgmidi/clf_gpt2_conf.json") as conf_file:
@@ -158,7 +151,10 @@ if __name__ == "__main__":
     vocab_size = len(vocab)
 
     # Load episodes (S is list of starting times and X is a list of sentences)
-    S,X,_,_ = load_episode(opt.ep)
+    S,X,_,_ = dnd.load_episode(opt.ep)
+
+    # Load vgmidi pieces for baseline
+    vgmidi = vg.load_dataset("../data/vgmidi/vgmidi_bardo_train.csv", vocab, params["seqlen"], params["dimension"])
 
     # Set first and last indices of sentences in the story
     ix_fst = opt.fst
@@ -191,11 +187,13 @@ if __name__ == "__main__":
     init_tokens = [vocab[word] for word in init_music.split(" ")]
 
     # Generation parameters
-    generation_params = {"init_tokens": init_tokens,
-                          "vocab_size": vocab_size,
-                               "top_k": opt.topk,
-                          "beam_width": opt.beam,
-                               "n_ctx": params["n_ctx"]}
+    generation_params = {"init_tokens"  : init_tokens,
+                          "vocab_size"  : vocab_size,
+                               "mode"   : opt.mode,
+                               "vgmidi" : opt.vgmidi,
+                               "top_k"  : opt.topk,
+                          "beam_width"  : opt.beam,
+                               "n_ctx"  : params["n_ctx"]}
 
     # Load generative language model
     language_model = load_language_model(vocab_size, params, "../trained/transformer.ckpt")
