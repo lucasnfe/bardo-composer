@@ -11,12 +11,7 @@ def baseline(generation_params, idx2token):
     prev_piece     =  generation_params["previous"]
 
     # Load all pieces in the vgmidi dataset with the desired emotion
-    pieces_with_story_emotion = []
-    for piece, emotion in vgmidi:
-        if (np.array(emotion) == discretize_emotion(story_emotion)).all():
-            pieces_with_story_emotion.append((piece, emotion))
-
-    print("Found", len(pieces_with_story_emotion), "with emotion", discretize_emotion(story_emotion))
+    pieces_with_story_emotion = load_vgmidi_pieces_with_emotion(vgmidi, story_emotion)
 
     # Check if a previous piece was given. If so, keep playing it.
     # Otherwise, select a new piece at random.

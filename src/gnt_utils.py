@@ -29,7 +29,7 @@ def run_language_model(init_tokens, language_model, n_ctx):
         generative_x = init_tokens[:, -n_ctx:]
         generative_y = language_model(generative_x, training=False)
         #generative_y = tf.math.softmax(generative_y).numpy().squeeze()
-    
+
     return generative_y
 
 def classify_sentence_emotion(story_x, tokenizer, clf_dnd_valence, clf_dnd_arousal):
@@ -49,7 +49,7 @@ def classify_music_emotion(music, clf_vgmidi_valence, clf_vgmidi_arousal):
     music_x = np.array(music)
     if music_x.shape[-1] < 32:
         music_x = np.pad(music_x, ((0, 0), (0, 32)), 'constant', constant_values=(1, 1))
-    
+
     with tf.device('/GPU:0'):
         music_valence = clf_vgmidi_valence(music_x, training=False)
 
@@ -80,12 +80,12 @@ def discretize_emotion(emotion):
         discrete_emotion[0] = 1
     if emotion[1] > 0.5:
         discrete_emotion[1] = 1
-    
+
     return discrete_emotion
 
 def sample_without_replacement(logits, n_samples):
     drawn_samples = []
-    
+
     distribution = np.array(logits)
     while len(drawn_samples) < n_samples:
         s = int(tf.random.categorical([distribution], 1))
@@ -113,3 +113,19 @@ def compute_penalty(tokens_so_far, generative_p, pen_len, alpha=0.25, dont_penal
     # penalty = penalty.squeeze()
 
     return penalty
+
+def load_vgmidi_pieces_with_emotion(vgmidi, emotion):
+    pieces_with_emotion = []
+    for piece, emotion in vgmidi:
+        if (np.array(emotion) == discretize_emotion(emotion)).all():
+            pieces_with_emotion.append((piece, emotion))
+
+    print("Found", len(pieces_with_emotion), "with emotion", discretize_emotion(emotion))
+    return pieces_with_emotion
+
+def get_rand_prefix_with_emotion(vgmidi, emotion, prefix_len=16):
+    # Load all pieces in the vgmidi dataset with the desired emotion
+    pieces_with_emotion = load_vgmidi_pieces_with_emotion(vgmidi, story_emotion)
+    rand_ix = np.random.randint(len(pieces_with_emotion))
+
+    return pieces_with_emotion[rand_ix][:prefix_len]

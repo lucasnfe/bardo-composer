@@ -77,7 +77,7 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
     # Init episode score
     episode_tokens = list(generation_params["init_tokens"])
 
-    last_emotion = np.array([0, 0])
+    last_emotion = np.array([-1, -1])
     try:
         for sentence in story_emotion:
             duration, ctx_emotion = sentence
@@ -87,7 +87,7 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
             # Restart init tokens when emotions are different
             if (discretize_emotion(ctx_emotion) != last_emotion).any():
                 print("CHANGED EMOTION!")
-                generation_params["init_tokens"] = list(init_tokens)
+                generation_params["init_tokens"] = get_rand_prefix_with_emotion(vgmidi, ctx_emotion)
                 generation_params["previous"] = None
 
             # Get sentence duration
@@ -147,9 +147,6 @@ if __name__ == "__main__":
     S,X,_,_ = dnd.load_episode(opt.ep)
     X = dnd.parse_contexts(X, EPISODE_CTX)
 
-    # Load vgmidi pieces for baseline
-    vgmidi = vg.load_dataset("../data/vgmidi/vgmidi_bardo_train.csv", vocab, params["seqlen"], dimesion=2, splits=["split_1"])
-
     # Set first and last indices of sentences in the story
     ix_fst = opt.fst
     if opt.lst == None:
@@ -175,6 +172,9 @@ if __name__ == "__main__":
 
     # Create idx2char from char2idx dict
     idx2char = {idx:char for char,idx in vocab.items()}
+
+    # Load vgmidi pieces for baseline
+    vgmidi = vg.load_dataset("../data/vgmidi/vgmidi_bardo_train.csv", vocab, params["seqlen"], dimesion=2, splits=["split_1"])
 
     # Encode init text as sequence of indices
     init_music = preprocess_text(opt.init)
