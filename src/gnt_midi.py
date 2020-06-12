@@ -94,7 +94,7 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
             if (discretize_emotion(ctx_emotion) != last_emotion).any():
                 print("CHANGED EMOTION!")
                 generation_params["init_tokens"] = list(init_tokens)
-                print(generation_params["init_tokens"])
+                generation_params["previous"] = None
 
             # Get sentence duration
             generation_params["length"] = duration
@@ -105,7 +105,8 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
             if generation_params["mode"] == "beam":
                 ctx_tokens, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, idx2char)
             elif generation_params["mode"] == "baseline":
-                ctx_tokens, ctx_text = baseline(generation_params, idx2char)
+                ctx_tokens, ctx_text, prev = baseline(generation_params, idx2char)
+                generation_params["previous"] = prev
 
             # Get the emotion of the generated music
             music_emotion = classify_music_emotion(np.array([generation_params["init_tokens"] + ctx_tokens]), clf_vgmidi_valence, clf_vgmidi_arousal)
@@ -193,6 +194,7 @@ if __name__ == "__main__":
                                "mode"   : opt.mode,
                                "top_k"  : opt.topk,
                           "beam_width"  : opt.beam,
+                            "previous"  : None,
                                "n_ctx"  : params["n_ctx"]}
 
     # Load generative language model

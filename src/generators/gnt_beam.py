@@ -126,7 +126,6 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
 
     total_duration = 0
     while total_duration <= gen_len:
-    #for i in range(64):
         # Iterate on the list of adjacent nodes
         c_node = c_node.forward(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal)
 
@@ -139,7 +138,5 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
         #print(c_node)
 
     print(total_duration)
-    # print(c_node.gen_ps())
-    # print(c_node.sent_ps())
 
     return top_sequence_without_init, top_text
