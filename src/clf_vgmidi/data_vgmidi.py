@@ -13,7 +13,7 @@ def load_dataset(datapath, vocab, seq_length, dimesion=0, splits=["split_1", "sp
         filepath, valence, arousal = row["filepath"], int(row["valence"]), int(row["arousal"])
 
         for split in splits:
-            if split in filepath:
+            if split + "/" in filepath:
                 piece_path = os.path.join(os.path.dirname(datapath), filepath)
 
                 piece_text = me.load_file(piece_path).split(" ")
