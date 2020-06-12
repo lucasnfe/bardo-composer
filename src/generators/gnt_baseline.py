@@ -10,6 +10,7 @@ def baseline(generation_params, idx2token):
     gen_len        = generation_params["length"]
     prev_piece     =  generation_params["previous"]
 
+    # Load all pieces in the vgmidi dataset with the desired emotion
     pieces_with_story_emotion = []
     for piece, emotion in vgmidi:
         if (np.array(emotion) == discretize_emotion(story_emotion)).all():
@@ -17,16 +18,20 @@ def baseline(generation_params, idx2token):
 
     print("Found", len(pieces_with_story_emotion), "with emotion", discretize_emotion(story_emotion))
 
+    # Check if a previous piece was given. If so, keep playing it.
+    # Otherwise, select a new piece at random.
     if prev_piece:
-        prev_ix, prev_token = prev_piece 
+        prev_ix, prev_token = prev_piece
     else:
         prev_token = 0
         prev_ix = np.random.randint(len(pieces_with_story_emotion))
 
     selected_piece, _ = pieces_with_story_emotion[prev_ix]
 
+    # Create buffer to fill with music tokens from the selected piece
     generated_piece = []
-    
+
+    # Fill the buffer until the desired duration is reached
     total_duration = 0
     while total_duration <= gen_len:
         generated_piece.append(selected_piece[prev_token])
@@ -36,4 +41,7 @@ def baseline(generation_params, idx2token):
 
         prev_token += 1
 
-    return generated_piece, generated_text, (prev_ix, prev_token)
+    # The probability of the generated piece is zero beause it comes from
+    # human composers
+    top_sequence_prob = 0
+    return generated_piece, top_sequence_prob, generated_text, (prev_ix, prev_token)

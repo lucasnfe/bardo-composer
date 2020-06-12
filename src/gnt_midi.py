@@ -103,14 +103,14 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
 
             # Generate music for this current story context
             if generation_params["mode"] == "beam":
-                ctx_tokens, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, idx2char)
+                ctx_tokens, ctx_prob, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, idx2char)
             elif generation_params["mode"] == "baseline":
-                ctx_tokens, ctx_text, prev = baseline(generation_params, idx2char)
+                ctx_tokens, ctx_prob, ctx_text, prev = baseline(generation_params, idx2char)
                 generation_params["previous"] = prev
 
             # Get the emotion of the generated music
             music_emotion = classify_music_emotion(np.array([generation_params["init_tokens"] + ctx_tokens]), clf_vgmidi_valence, clf_vgmidi_arousal)
-            print(generation_params["init_tokens"] + ctx_tokens, discretize_emotion(music_emotion))
+            print(generation_params["init_tokens"] + ctx_tokens, discretize_emotion(music_emotion), ctx_prob)
 
             # Remove init tokens before
             episode_tokens += ctx_tokens
@@ -125,8 +125,6 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
     return episode_tokens
 
 if __name__ == "__main__":
-    np.random.seed(42)
-
     # Parse arguments
     parser = argparse.ArgumentParser(description='midi_generator.py')
     parser.add_argument('--mode', type=str, default="beam", help="Generation strategy.")

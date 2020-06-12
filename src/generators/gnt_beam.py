@@ -22,6 +22,10 @@ class BeamNode:
         max_sent = tf.argmax(self._logps)
         return list(self.tokens()[max_sent])
 
+    def get_top_gen_ps(self):
+        max_sent = tf.argmax(self._logps)
+        return float(self.gen_ps()[max_sent])
+
     def forward(self, generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal):
         story_emotion = generation_params["emotion"]
         init_tokens   = generation_params["init_tokens"]
@@ -40,7 +44,7 @@ class BeamNode:
         # Get the top_k token candidates
         top_k_probs, top_k_tokens = tf.math.top_k(token_p, top_k)
         top_k_probs = tf.math.softmax(top_k_probs)
-        
+
         top_k_probs = np.reshape(top_k_probs, [-1])
         top_k_tokens = np.reshape(top_k_tokens, [top_k * beam_width, 1])
 
@@ -48,7 +52,7 @@ class BeamNode:
         repeats = [top_k for i in range(beam_width)]
         tokens = tf.repeat(self._tokens, repeats=repeats, axis=0)
         logps = tf.repeat(self._logps, repeats=repeats, axis=0).numpy().squeeze()
-        
+
         # Get probabilities of next tokens being of the story emotion
         music_x = tf.concat((tokens, top_k_tokens), axis=1)
         music_valence, music_arousal = compute_music_emotion_probability(music_x[:,-n_ctx:], story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal)
@@ -57,12 +61,8 @@ class BeamNode:
         final_logp = logps + np.log(top_k_probs * music_valence * music_arousal)
 
         # Select top_k tokens to form first beam
-        #top_k_probs, top_k_tokens = tf.math.top_k(final_logp, top_k)
         beam_tokens = sample_without_replacement(final_logp, beam_width)
-        #beam_probs = final_logp[beam_tokens]
         beam_probs = (logps + top_k_probs)[beam_tokens]
-        #beam_probs = (np.log(top_k_probs) + np.log(music_valence) + np.log(music_arousal))[beam_tokens]
-        #beam_probs = (np.log(music_valence) + np.log(music_arousal))[beam_tokens]
 
         # Reshape init_tokens and top_k_probs to be of shape (beam_width, 1)
         beam_tokens = tf.reshape(beam_tokens, (beam_width, 1))
@@ -98,7 +98,7 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
     # Batchfy music
     tokens = tf.tile(tokens, tf.constant([vocab_size, 1], tf.int32))
     tokens = tf.concat((tokens, top_k_tokens), axis=1)
-    
+
     # Get probabilities of next tokens being of the story emotion
     music_valence, music_arousal = compute_music_emotion_probability(tokens[:,-n_ctx:], story_emotion, clf_vgmidi_valence, clf_vgmidi_arousal)
 
@@ -111,9 +111,7 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
 
     # Select top_k tokens to form first beam
     beam_tokens = sample_without_replacement(final_logp, beam_width)
-    #beam_probs = final_logp[beam_tokens]
     beam_probs = top_k_probs[beam_tokens]
-    #beam_probs = (np.log(music_valence) + np.log(music_arousal))[beam_tokens]
 
     # Reshape init_tokens and top_k_probs to be of shape (beam_width, 1)
     beam_tokens = tf.reshape(beam_tokens, (beam_width, 1))
@@ -130,6 +128,7 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
         c_node = c_node.forward(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal)
 
         top_sequence = c_node.get_top_gen_sequence()
+        top_sequence_prob = c_node.get_top_gen_sequence()
         top_sequence_without_init = top_sequence[len(init_tokens):]
 
         top_text = " ".join([idx2token[ix] for ix in top_sequence_without_init])
@@ -139,4 +138,4 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
 
     print(total_duration)
 
-    return top_sequence_without_init, top_text
+    return top_sequence_without_init, top_sequence_prob, top_text
