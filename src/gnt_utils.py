@@ -33,7 +33,8 @@ def run_language_model(init_tokens, language_model, n_ctx):
     return generative_y
 
 def classify_sentence_emotion(story_x, tokenizer, clf_dnd_valence, clf_dnd_arousal):
-    story_tokens = tf.constant(tokenizer.encode(story_x, add_special_tokens=True))[None, :]
+    # Create batch of size 1
+    story_tokens = tf.expand_dims(tokenizer.encode(story_x, add_special_tokens=True), 0)
 
     with tf.device('/GPU:0'):
         story_valence = clf_dnd_valence(story_tokens, training=False)

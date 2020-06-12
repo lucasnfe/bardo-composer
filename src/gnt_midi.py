@@ -48,11 +48,8 @@ def load_clf_vgmidi(vocab_size, params, path="../trained/clf_vgmidi.ckpt"):
     return clf_vgmidi
 
 def classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal):
-    episode_sentences = []
-
     story_emotion = []
     for i in range(len(X)):
-        episode_sentences.append(X[i])
         if i < ix_fst:
             continue
 
@@ -63,12 +60,9 @@ def classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf
         duration = S[i+1] - S[i]
         print(duration)
 
-        # Slice sentences to form the current story context
-        ctx_sentences = ' '.join(episode_sentences[-EPISODE_CTX:])
-
         # Get the emotion of the current story context
-        ctx_emotion = classify_sentence_emotion(ctx_sentences, tokenizer, clf_dnd_valence, clf_dnd_arousal)
-        print(ctx_sentences, discretize_emotion(ctx_emotion))
+        ctx_emotion = classify_sentence_emotion(X[i], tokenizer, clf_dnd_valence, clf_dnd_arousal)
+        print(X[i], discretize_emotion(ctx_emotion))
 
         story_emotion.append((duration,ctx_emotion))
 
@@ -151,6 +145,7 @@ if __name__ == "__main__":
 
     # Load episodes (S is list of starting times and X is a list of sentences)
     S,X,_,_ = dnd.load_episode(opt.ep)
+    X = dnd.parse_contexts(X, EPISODE_CTX)
 
     # Load vgmidi pieces for baseline
     vgmidi = vg.load_dataset("../data/vgmidi/vgmidi_bardo_train.csv", vocab, params["seqlen"], dimesion=2, splits=["split_1"])
