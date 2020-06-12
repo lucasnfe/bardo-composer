@@ -128,7 +128,7 @@ def beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmid
         c_node = c_node.forward(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal)
 
         top_sequence = c_node.get_top_gen_sequence()
-        top_sequence_prob = c_node.get_top_gen_sequence()
+        top_sequence_prob = c_node.get_top_gen_ps()
         top_sequence_without_init = top_sequence[len(init_tokens):]
 
         top_text = " ".join([idx2token[ix] for ix in top_sequence_without_init])

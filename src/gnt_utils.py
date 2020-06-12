@@ -116,16 +116,18 @@ def compute_penalty(tokens_so_far, generative_p, pen_len, alpha=0.25, dont_penal
 
 def load_vgmidi_pieces_with_emotion(vgmidi, emotion):
     pieces_with_emotion = []
-    for piece, emotion in vgmidi:
-        if (np.array(emotion) == discretize_emotion(emotion)).all():
-            pieces_with_emotion.append((piece, emotion))
+    for p,e in vgmidi:
+        if (np.array(e) == discretize_emotion(emotion)).all():
+            pieces_with_emotion.append((p, e))
 
     print("Found", len(pieces_with_emotion), "with emotion", discretize_emotion(emotion))
     return pieces_with_emotion
 
 def get_rand_prefix_with_emotion(vgmidi, emotion, prefix_len=16):
     # Load all pieces in the vgmidi dataset with the desired emotion
-    pieces_with_emotion = load_vgmidi_pieces_with_emotion(vgmidi, story_emotion)
+    pieces_with_emotion = load_vgmidi_pieces_with_emotion(vgmidi, emotion)
     rand_ix = np.random.randint(len(pieces_with_emotion))
 
-    return pieces_with_emotion[rand_ix][:prefix_len]
+    rand_piece, _ = pieces_with_emotion[rand_ix] 
+
+    return rand_piece[:prefix_len]

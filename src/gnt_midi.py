@@ -75,7 +75,10 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
     init_tokens = list(generation_params["init_tokens"])
 
     # Init episode score
-    episode_tokens = list(generation_params["init_tokens"])
+    score_tokens = list(generation_params["init_tokens"])
+
+    # Accumulate piece log probability
+    score_logp = 0
 
     last_emotion = np.array([-1, -1])
     try:
@@ -87,7 +90,7 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
             # Restart init tokens when emotions are different
             if (discretize_emotion(ctx_emotion) != last_emotion).any():
                 print("CHANGED EMOTION!")
-                generation_params["init_tokens"] = get_rand_prefix_with_emotion(vgmidi, ctx_emotion)
+                generation_params["init_tokens"] = [0] + get_rand_prefix_with_emotion(vgmidi, ctx_emotion)
                 generation_params["previous"] = None
 
             # Get sentence duration
@@ -102,12 +105,14 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
                 ctx_tokens, ctx_prob, ctx_text, prev = baseline(generation_params, idx2char)
                 generation_params["previous"] = prev
 
+            score_logp += ctx_prob
+
             # Get the emotion of the generated music
             music_emotion = classify_music_emotion(np.array([generation_params["init_tokens"] + ctx_tokens]), clf_vgmidi_valence, clf_vgmidi_arousal)
             print(generation_params["init_tokens"] + ctx_tokens, discretize_emotion(music_emotion), ctx_prob)
 
             # Remove init tokens before
-            episode_tokens += ctx_tokens
+            score_tokens += ctx_tokens
 
             generation_params["init_tokens"] = ctx_tokens[-params["n_ctx"]:]
             last_emotion = discretize_emotion(ctx_emotion)
@@ -116,7 +121,7 @@ def generate_music_with_emotion(story_emotion, generation_params, language_model
     except KeyboardInterrupt:
         print("Exiting due to keyboard interrupt.")
 
-    return episode_tokens
+    return score_tokens, score_logp
 
 if __name__ == "__main__":
     # Parse arguments
@@ -197,12 +202,13 @@ if __name__ == "__main__":
     clf_vgmidi_valence = load_clf_vgmidi(vocab_size, params, "../trained/clf_gpt2.ckpt/clf_gpt2_0/clf_gpt2")
     clf_vgmidi_arousal = load_clf_vgmidi(vocab_size, params, "../trained/clf_gpt2.ckpt/clf_gpt2_1/clf_gpt2")
 
-    episode_tokens = generate_music_with_emotion(story_emotion, generation_params, language_model,
+    score_tokens, score_prob = generate_music_with_emotion(story_emotion, generation_params, language_model,
                                                  (clf_vgmidi_valence, clf_vgmidi_arousal), idx2char)
 
     # Decode generated tokens
-    episode_score = " ".join([idx2char[idx] for idx in episode_tokens])
+    episode_score = " ".join([idx2char[idx] for idx in score_tokens])
     print(episode_score)
+    print("Score prob:", score_prob)
 
     # Write piece as midi and wav
     episode_name = os.path.splitext(os.path.basename(opt.ep))[0]
