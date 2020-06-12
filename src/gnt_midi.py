@@ -24,7 +24,7 @@ from clf_vgmidi.models import *
 from clf_dnd.data_dnd import *
 from gnt_beam.beam_search import *
 
-EPISODE_CTX = 5
+EPISODE_CTX = 20
 GENERATED_DIR = '../output'
 
 def load_language_model(vocab_size, params, path):
@@ -78,7 +78,7 @@ def classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf
 
         # Get the emotion of the current story context
         ctx_emotion = classify_sentence_emotion(ctx_sentences, tokenizer, clf_dnd_valence, clf_dnd_arousal)
-        print(ctx_sentences, ctx_emotion)
+        print(ctx_sentences, discretize_emotion(ctx_emotion))
 
         story_emotion.append((duration,ctx_emotion))
 
@@ -87,27 +87,42 @@ def classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf
 def generate_music_with_emotion(story_emotion, generation_params, language_model, clf_vgmidi, idx2char):
     clf_vgmidi_valence, clf_vgmidi_arousal = clf_vgmidi
 
+    # Copy init_tokens
+    init_tokens = list(generation_params["init_tokens"])
+
+    # Init episode score
     episode_tokens = list(generation_params["init_tokens"])
+    
+    last_emotion = np.array([0, 0])
     try:
         for sentence in story_emotion:
             duration, ctx_emotion = sentence
 
+            print(last_emotion, discretize_emotion(ctx_emotion))
+            
+            # Restart init tokens when emotions are different
+            if (discretize_emotion(ctx_emotion) != last_emotion).any():
+                print("CHANGED EMOTION!")
+                generation_params["init_tokens"] = list(init_tokens)
+                print(generation_params["init_tokens"])
+
             # Get sentence duration
             generation_params["length"] = duration
             generation_params["emotion"] = ctx_emotion
-            print(duration, ctx_emotion)
+            print(duration, discretize_emotion(ctx_emotion))
 
             # Generate music for this current story context
             ctx_tokens, ctx_text = beam_search(generation_params, language_model, clf_vgmidi_valence, clf_vgmidi_arousal, idx2char)
 
             # Get the emotion of the generated music
-            music_emotion = classify_music_emotion(np.array([ctx_tokens]), clf_vgmidi_valence, clf_vgmidi_arousal)
-            print(ctx_text, music_emotion)
+            music_emotion = classify_music_emotion(np.array([generation_params["init_tokens"] + ctx_tokens]), clf_vgmidi_valence, clf_vgmidi_arousal)
+            print(generation_params["init_tokens"] + ctx_tokens, discretize_emotion(music_emotion))
 
             # Remove init tokens before
             episode_tokens += ctx_tokens
 
-            generation_params["init_tokens"] = ctx_tokens[-params["n_ctx"]:]
+            generation_params["init_tokens"] = ctx_tokens[-params["n_ctx"]:]         
+            last_emotion = discretize_emotion(ctx_emotion)
 
             print("==========", "\n")
     except KeyboardInterrupt:
@@ -129,6 +144,18 @@ if __name__ == "__main__":
     parser.add_argument('--beam', type=int, default=3, help="Beam Size.")
 
     opt = parser.parse_args()
+    
+    # Load training parameters
+    params = {}
+    with open("clf_vgmidi/clf_gpt2_conf.json") as conf_file:
+        params = json.load(conf_file)["clf_gpt2"]
+
+    # Load char2idx dict from json file
+    with open("../trained/vocab.json") as f:
+        vocab = json.load(f)
+
+    # Calculate vocab_size from char2idx dict
+    vocab_size = len(vocab)
 
     # Load episodes (S is list of starting times and X is a list of sentences)
     S,X,_,_ = load_episode(opt.ep)
@@ -144,8 +171,8 @@ if __name__ == "__main__":
     tokenizer = tm.BertTokenizer.from_pretrained('bert-base-uncased')
 
     # Load sentence classifier
-    clf_dnd_valence = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep1_0/clf_bert")
-    clf_dnd_arousal = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep1_1/clf_bert")
+    clf_dnd_valence = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep3_0/clf_bert")
+    clf_dnd_arousal = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep3_1/clf_bert")
 
     story_emotion = classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal)
 
@@ -155,18 +182,6 @@ if __name__ == "__main__":
     del clf_dnd_arousal
 
     tf.keras.backend.clear_session()
-
-    # Load training parameters
-    params = {}
-    with open("clf_vgmidi/clf_gpt2_conf.json") as conf_file:
-        params = json.load(conf_file)["clf_gpt2"]
-
-    # Load char2idx dict from json file
-    with open("../trained/vocab.json") as f:
-        vocab = json.load(f)
-
-    # Calculate vocab_size from char2idx dict
-    vocab_size = len(vocab)
 
     # Create idx2char from char2idx dict
     idx2char = {idx:char for char,idx in vocab.items()}

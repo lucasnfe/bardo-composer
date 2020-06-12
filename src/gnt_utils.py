@@ -28,23 +28,27 @@ def run_language_model(init_tokens, language_model, n_ctx):
     with tf.device('/GPU:0'):
         generative_x = init_tokens[:, -n_ctx:]
         generative_y = language_model(generative_x, training=False)
-        #generative_p = tf.math.softmax(generative_y).numpy().squeeze()
-
+        #generative_y = tf.math.softmax(generative_y).numpy().squeeze()
+    
     return generative_y
 
 def classify_sentence_emotion(story_x, tokenizer, clf_dnd_valence, clf_dnd_arousal):
     story_tokens = tf.constant(tokenizer.encode(story_x, add_special_tokens=True))[None, :]
 
     with tf.device('/GPU:0'):
-        story_valence = clf_dnd_valence(story_tokens)
+        story_valence = clf_dnd_valence(story_tokens, training=False)
     with tf.device('/GPU:1'):
-        story_arousal = clf_dnd_arousal(story_tokens)
+        story_arousal = clf_dnd_arousal(story_tokens, training=False)
 
     story_emotion = tf.math.sigmoid(tf.concat([story_valence, story_arousal], 1)).numpy().squeeze()
 
     return story_emotion
 
-def classify_music_emotion(music_x, clf_vgmidi_valence, clf_vgmidi_arousal):
+def classify_music_emotion(music, clf_vgmidi_valence, clf_vgmidi_arousal):
+    music_x = np.array(music)
+    if music_x.shape[-1] < 32:
+        music_x = np.pad(music_x, ((0, 0), (0, 32)), 'constant', constant_values=(1, 1))
+    
     with tf.device('/GPU:0'):
         music_valence = clf_vgmidi_valence(music_x, training=False)
 
@@ -68,12 +72,26 @@ def compute_music_emotion_probability(music_x, story_emotion, clf_vgmidi_valence
 
     return music_valence, music_arousal
 
+
+def discretize_emotion(emotion):
+    discrete_emotion = np.array([0, 0])
+    if emotion[0] > 0.5:
+        discrete_emotion[0] = 1
+    if emotion[1] > 0.5:
+        discrete_emotion[1] = 1
+    
+    return discrete_emotion
+
 def sample_without_replacement(logits, n_samples):
     drawn_samples = []
+    
+    distribution = np.array(logits)
     while len(drawn_samples) < n_samples:
-        s = int(tf.random.categorical([logits], 1))
-        if s not in drawn_samples:
-            drawn_samples.append(s)
+        s = int(tf.random.categorical([distribution], 1))
+        drawn_samples.append(s)
+
+        # Remove s from distribution
+        distribution = np.delete(distribution, s, 0)
     return drawn_samples
 
 def compute_penalty(tokens_so_far, generative_p, pen_len, alpha=0.25, dont_penalize=[0,1]):
