@@ -1,7 +1,7 @@
 import os
 import csv
 import tensorflow as tf
-import midi.encoder as me
+import clf_vgmidi.midi.encoder as me
 
 BUFFER_SIZE=10000
 

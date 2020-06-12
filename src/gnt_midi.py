@@ -189,8 +189,8 @@ if __name__ == "__main__":
     # Generation parameters
     generation_params = {"init_tokens"  : init_tokens,
                           "vocab_size"  : vocab_size,
+                               "vgmidi" : vgmidi,
                                "mode"   : opt.mode,
-                               "vgmidi" : opt.vgmidi,
                                "top_k"  : opt.topk,
                           "beam_width"  : opt.beam,
                                "n_ctx"  : params["n_ctx"]}
