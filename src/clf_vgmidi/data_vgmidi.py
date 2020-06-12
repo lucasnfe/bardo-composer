@@ -5,23 +5,28 @@ import clf_vgmidi.midi.encoder as me
 
 BUFFER_SIZE=10000
 
-def load_dataset(datapath, vocab, seq_length, dimesion=0):
+def load_dataset(datapath, vocab, seq_length, dimesion=0, splits=["split_1", "split_2", "split_4", "split_8", "split_16"]):
     dataset = []
 
     data = csv.DictReader(open(datapath, "r"))
     for row in data:
         filepath, valence, arousal = row["filepath"], int(row["valence"]), int(row["arousal"])
 
-        piece_path = os.path.join(os.path.dirname(datapath), filepath)
-        piece_text = me.load_file(piece_path).split(" ")
-        tokens = [vocab[c] for c in piece_text]
+        for split in splits:
+            if split in filepath:
+                piece_path = os.path.join(os.path.dirname(datapath), filepath)
 
-        if dimesion == 0:
-            label = valence
-        elif dimesion == 1:
-            label = arousal
+                piece_text = me.load_file(piece_path).split(" ")
+                tokens = [vocab[c] for c in piece_text]
 
-        dataset.append((tokens[:seq_length], [label]))
+                if dimesion == 0:
+                    label = [valence]
+                elif dimesion == 1:
+                    label = [arousal]
+                elif dimesion == 2:
+                    label = [valence, arousal]
+
+                dataset.append((tokens[:seq_length], label))
 
     return dataset
 

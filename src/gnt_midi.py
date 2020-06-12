@@ -132,7 +132,7 @@ if __name__ == "__main__":
     parser.add_argument('--ep',   type=str, required=True, help="Dnd episode to score.")
     parser.add_argument('--fst',  type=int, default=0, help="Sentence index to start the score.")
     parser.add_argument('--lst',  type=int, required=False, help="Sentence index to end the score.")
-    parser.add_argument('--init', type=str, required=True, help="Seed to start music generation.")
+    parser.add_argument('--init', type=str, default="", help="Seed to start music generation.")
     parser.add_argument('--topk', type=int, default=10, help="Top k tokens to consider when sampling.")
     parser.add_argument('--beam', type=int, default=3, help="Beam Size.")
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     S,X,_,_ = dnd.load_episode(opt.ep)
 
     # Load vgmidi pieces for baseline
-    vgmidi = vg.load_dataset("../data/vgmidi/vgmidi_bardo_train.csv", vocab, params["seqlen"], params["dimension"])
+    vgmidi = vg.load_dataset("../data/vgmidi/vgmidi_bardo_train.csv", vocab, params["seqlen"], dimesion=2, splits=["split_1"])
 
     # Set first and last indices of sentences in the story
     ix_fst = opt.fst
