@@ -5,7 +5,6 @@ import numpy as np
 import tensorflow as tf
 import transformers as tm
 
-from models import *
 from load_data import *
 
 def build_clf_model(vocab_size, params):
@@ -15,7 +14,7 @@ def build_clf_model(vocab_size, params):
     model.add(tf.keras.layers.Embedding(vocab_size, params["embed"], batch_input_shape=[params["batch"], None]))
 
     for i in range(max(1, params["layers"])):
-        model.add(tf.keras.layers.LSTM(params["hidden"], return_sequences=True, stateful=True, dropout=params["drop"], recurrent_dropout=params["drop"]))
+        model.add(tf.keras.layers.LSTM(params["hidden"], return_sequences=True, stateful=True, dropout=params["drop"]))
 
     model.add(tf.keras.layers.Dense(vocab_size))
 

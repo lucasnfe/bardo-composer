@@ -6,7 +6,7 @@ import tensorflow as tf
 import transformers as tm
 
 from models import *
-from data_vgmidi import *
+from load_data import *
 
 def build_clf_model(vocab_size, params):
     # Create GPT2 languade model configuration
@@ -48,11 +48,8 @@ if __name__ == "__main__":
         vocab = json.load(f)
 
     # Build dataset from encoded unlabelled midis
-    train_text = load_dataset(params["train"], vocab, params["seqlen"], params["dimension"])
-    test_text = load_dataset(params["test"], vocab, params["seqlen"], params["dimension"])
-
-    train_dataset = build_dataset(train_text, params["batch"])
-    test_dataset = build_dataset(test_text, params["batch"])
+    train_dataset = build_dataset(params["train"], vocab, params["seqlen"], params["batch"], params["dimension"])
+    test_dataset = build_dataset(params["test"], vocab, params["seqlen"], params["batch"], params["dimension"])
 
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)

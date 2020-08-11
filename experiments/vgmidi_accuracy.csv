@@ -1,0 +1,5 @@
+Method, Valence, Arousal
+Baseline GPT-2   , 0.00, 0.00
+Pre-trained GPT-2, 0.75, 0.78
+Baseline LSTM    , 0.69, 0.63
+Pre-trained LSTM , 0.74, 0.80
