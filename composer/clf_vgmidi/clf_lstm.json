@@ -4,7 +4,7 @@
         "test"     : "../../data/vgmidi/vgmidi_bardo_test.csv",
         "vocab"    : "../../trained/vocab.json",
         "pretr"    : "../../trained/gen_lstm.ckpt",
-        "seqlen"   : 128,
+        "seqlen"   : 1024,
         "embed"    : 512,
         "layers"   : 4,
         "batch"    : 16,
