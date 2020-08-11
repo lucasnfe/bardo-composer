@@ -3,7 +3,7 @@
         "train"    : "../../../adl-piano-midi/midi/train",
         "test"     : "../../../adl-piano-midi/midi/test",
         "vocab"    : "../../trained/vocab.json",
-        "check"    : "../../trained/gen_lstm.ckpt",
+        "check"    : "../../trained/gen_lstm.ckpt/",
         "seqlen"   : 1024,
         "embed"    : 512,
         "layers"   : 4,

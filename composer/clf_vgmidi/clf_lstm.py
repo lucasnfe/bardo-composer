@@ -6,28 +6,24 @@ import tensorflow as tf
 import transformers as tm
 
 from models import *
-from data_vgmidi import *
-
-from sklearn.linear_model import LogisticRegression
-
-# Directory where trained model will be saved
-TRAIN_DIR = "./trained"
+from load_data import *
 
 def build_clf_model(vocab_size, params):
+    # Build Transformer for Language Modeling task
     model = tf.keras.Sequential()
 
-    model.add(tf.keras.layers.Embedding(vocab_size, embed_dim, batch_input_shape=[batch_size, None]))
+    model.add(tf.keras.layers.Embedding(vocab_size, params["embed"], batch_input_shape=[params["batch"], None]))
 
-    for i in range(max(1, lstm_layers)):
-        model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, dropout=dropout, recurrent_dropout=dropout))
+    for i in range(max(1, params["layers"])):
+        model.add(tf.keras.layers.LSTM(params["hidden"], return_sequences=True, stateful=True, dropout=params["drop"], recurrent_dropout=params["drop"]))
 
     model.add(tf.keras.layers.Dense(vocab_size))
 
     return model
 
-def train_clf_classifier(clf_lstm, params, train_dataset, test_dataset):
-    clf_lstm.compile(loss=tf.keras.losses.sparse_categorical_crossentropy(from_logits=True),
-                optimizer=tf.keras.optimizers.Adam(params["lr"]), metrics=['accuracy'])
+def train_clf_model(model, params, train_dataset, test_dataset):
+    model.compile(loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+            optimizer=tf.keras.optimizers.Adam(params["lr"]), metrics=['accuracy'])
 
     checkpoint = tf.keras.callbacks.ModelCheckpoint('../../trained/clf_lstm.ckpt/clf_lstm' + "_" + str(params["dimension"]) + "/clf_lstm",
         monitor='val_accuracy', verbose=1, save_best_only=True, save_weights_only=True)
@@ -50,14 +46,20 @@ if __name__ == "__main__":
         vocab = json.load(f)
 
     # Build dataset from encoded unlabelled midis
-    train_text = load_dataset(params["train"], vocab, params["seqlen"], params["dimension"])
-    test_text = load_dataset(params["test"], vocab, params["seqlen"], params["dimension"])
-
-    train_dataset = build_dataset(train_text, params["batch"])
-    test_dataset = build_dataset(test_text, params["batch"])
+    train_dataset = build_dataset(params["train"], vocab, params["seqlen"], params["batch"], params["dimension"])
+    test_dataset = build_dataset(params["test"], vocab, params["seqlen"], params["batch"], params["dimension"])
 
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)
 
     # Rebuild generative model from checkpoint
     clf_lstm = build_clf_model(vocab_size, params)
+    if params["finetune"]:
+        ckpt = tf.train.Checkpoint(net=clf_lstm)
+        ckpt.restore(tf.train.latest_checkpoint(params["pretr"]))
+
+    # Add emotion head
+    clf_lstm.add(tf.keras.layers.Dense(1, name="emotion_head"))
+
+    # Train lstm
+    train_clf_model(clf_lstm, params, train_dataset, test_dataset)
