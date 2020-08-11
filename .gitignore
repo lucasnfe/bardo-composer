@@ -130,7 +130,11 @@ dmypy.json
 
 # Don't load large trained models
 trained/
+*.mp3
+*.mp4
 
+# Don't upload txt verions of midi files
 *.txt
+
 data/dnd/*.py
 output/*.mid
