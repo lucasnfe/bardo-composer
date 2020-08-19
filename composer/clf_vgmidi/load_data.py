@@ -21,7 +21,6 @@ def build_dataset(datapath, vocab, seq_length, batch_size, dimesion=0, splits=["
                 txt_file = os.path.splitext(piece_path)[0] + ".txt"
 
                 if os.path.exists(txt_file):
-
                     # Read txt file
                     tokens = []
                     with open(txt_file) as fp:

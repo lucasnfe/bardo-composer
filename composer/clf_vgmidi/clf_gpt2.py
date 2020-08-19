@@ -17,7 +17,7 @@ def build_clf_model(vocab_size, params):
     clf_gpt2 = GPT2Classifier(clf_config)
     if params["finetune"]:
         ckpt = tf.train.Checkpoint(net=clf_gpt2)
-        ckpt.restore(tf.train.latest_checkpoint(params["pretr"]))
+        ckpt.restore(tf.train.latest_checkpoint(params["pretr"])).expect_partial()
 
     return clf_gpt2
 
