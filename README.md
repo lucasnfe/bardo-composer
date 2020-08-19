@@ -17,6 +17,27 @@ model to generate musical pieces conveying the desired emotion.
 
 ## Installing Dependencies
 
-## Dowload Data
-
 ## Reproducing Results
+
+Bardo Composer uses a fine-tuned BERT to classify the story emotion and a fine-tuned GPT2 to classify the music emotion.
+In the paper, we report the accuracy of these models. This section describes how to reproduce the results we found.
+
+### Story Emotion Classification
+
+We compared the fine-tuned BERT model for story emotion classification with the simpler Naıve Bayes approach of [Padovani, Ferreira, and
+Lelis (2017)]. 
+
+#### Download Pre-trained BERT
+
+#### Fine-tune Pre-trained BERT
+
+### Music Emotion Classification
+
+We compared the fine-tuned GPT2 model for music emotion classification with the simpler LSTM approach of [Ferreira and Whitehead (2019)].
+
+#### Download Pre-trained Models
+
+- LSTM
+- GPT2
+
+#### Fine-tune Pre-trained Models
