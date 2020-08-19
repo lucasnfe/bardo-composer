@@ -1,0 +1,18 @@
+{
+    "clf_lstm": {
+        "train"    : "../../data/vgmidi/vgmidi_bardo_train.csv",
+        "test"     : "../../data/vgmidi/vgmidi_bardo_test.csv",
+        "vocab"    : "../../trained/vocab.json",
+        "pretr"    : "../../trained/gen_lstm.ckpt",
+        "seqlen"   : 1024,
+        "embed"    : 512,
+        "layers"   : 4,
+        "batch"    : 4,
+        "hidden"   : 768,
+        "drop"     : 0.25,
+        "lr"       : 3e-5,
+        "epochs"   : 10,
+        "dimension": 1,
+        "finetune" : false
+    }
+}

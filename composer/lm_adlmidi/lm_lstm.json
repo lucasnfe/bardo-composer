@@ -1,0 +1,18 @@
+{
+    "lm_lstm": {
+        "train"    : "../../../adl-piano-midi/midi/train",
+        "test"     : "../../../adl-piano-midi/midi/test",
+        "vocab"    : "../../trained/vocab.json",
+        "check"    : "../../trained/gen_lstm.ckpt",
+        "seqlen"   : 128,
+        "embed"    : 512,
+        "layers"   : 4,
+        "batch"    : 16,
+        "hidden"   : 768,
+        "drop"     : 0.25,
+        "lr"       : 3e-5,
+        "epochs"   : 15,
+        "schedule" : "warmup_cosine",
+        "warmup"   : 0.002
+    }
+}
