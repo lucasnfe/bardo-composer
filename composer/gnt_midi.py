@@ -5,9 +5,9 @@ import scipy as sp
 import numpy as np
 import tensorflow as tf
 
+import midi_encoder as me
 import clf_dnd.data_dnd as dnd
-import clf_vgmidi.data_vgmidi as vg
-import clf_vgmidi.midi.encoder as me
+import clf_vgmidi.load_data as vg
 
 from gnt_utils import *
 from clf_vgmidi.models import *

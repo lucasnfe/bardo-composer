@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-import clf_vgmidi.midi.encoder as me
+import composer.midi_encoder as me
 
 from gnt_utils import *
 
