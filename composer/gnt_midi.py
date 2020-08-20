@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
     # Load training parameters
     params = {}
-    with open("clf_vgmidi/clf_gpt2_conf.json") as conf_file:
+    with open("clf_vgmidi/clf_gpt2.json") as conf_file:
         params = json.load(conf_file)["clf_gpt2"]
 
     # Load char2idx dict from json file
