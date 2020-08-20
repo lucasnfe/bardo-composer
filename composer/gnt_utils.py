@@ -118,12 +118,12 @@ def load_vgmidi_pieces_with_emotion(vgmidi, emotion):
     pieces_with_emotion = []
     for p,e in vgmidi:
         if (np.array(e) == discretize_emotion(emotion)).all():
-            pieces_with_emotion.append((p, e))
+            pieces_with_emotion.append(p)
 
     print("Found", len(pieces_with_emotion), "with emotion", discretize_emotion(emotion))
     return pieces_with_emotion
 
-def get_rand_prefix_with_emotion(vgmidi, emotion, time_steps=4, time_step_token=0):
+def get_rand_prefix_with_emotion(vgmidi, emotion, time_steps=4, time_step_token=1):
     # Load all pieces in the vgmidi dataset with the desired emotion
     pieces_with_emotion = load_vgmidi_pieces_with_emotion(vgmidi, emotion)
 
