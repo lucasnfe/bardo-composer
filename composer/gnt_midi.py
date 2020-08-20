@@ -179,7 +179,7 @@ if __name__ == "__main__":
     idx2char = {idx:char for char,idx in vocab.items()}
 
     # Load vgmidi pieces for baseline
-    vgmidi = vg.load_dataset("../data/vgmidi/vgmidi_bardo_train.csv", vocab, params["seqlen"], dimesion=2, splits=["split_1"])
+    vgmidi = vg.load_dataset("../data/vgmidi/vgmidi_bardo_train.csv", vocab, dimesion=2, splits=["split_1"])
 
     # Encode init text as sequence of indices
     init_music = preprocess_text(opt.init)

@@ -45,8 +45,11 @@ if __name__ == "__main__":
         vocab = json.load(f)
 
     # Build dataset from encoded unlabelled midis
-    train_dataset = build_dataset(params["train"], vocab, params["seqlen"], params["batch"], params["dimension"])
-    test_dataset = build_dataset(params["test"], vocab, params["seqlen"], params["batch"], params["dimension"])
+    train_dataset = load_dataset(params["train"], vocab, params["dimension"])
+    test_dataset = load_dataset(params["test"], vocab, params["dimension"])
+
+    train_dataset = build_dataset(train_dataset, params["batch"])
+    test_dataset = build_dataset(test_dataset, params["batch"])
 
     # Calculate vocab_size from char2idx dict
     vocab_size = len(vocab)

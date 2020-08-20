@@ -4,7 +4,7 @@ import tensorflow as tf
 
 BUFFER_SIZE=10000
 
-def build_dataset(datapath, vocab, seq_length, batch_size, dimesion=0, splits=["split_1", "split_2", "split_4", "split_8", "split_16"]):
+def load_dataset(datapath, vocab, dimesion=0, splits=["split_1", "split_2", "split_4", "split_8", "split_16"]):
     dataset = []
 
     data = csv.DictReader(open(datapath, "r"))
@@ -35,6 +35,9 @@ def build_dataset(datapath, vocab, seq_length, batch_size, dimesion=0, splits=["
 
                     dataset.append((tokens, label))
 
+    return dataset
+
+def build_dataset(dataset, batch_size):
     tf_dataset = tf.data.Dataset.from_generator(lambda: dataset, (tf.int32, tf.int32))
     tf_dataset = tf_dataset.shuffle(BUFFER_SIZE)
     tf_dataset = tf_dataset.padded_batch(batch_size, padded_shapes=([None], [1]), padding_values=(1, 1))
