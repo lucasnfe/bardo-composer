@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 import midi_encoder as me
-import clf_dnd.data_dnd as dnd
+import clf_dnd.load_data as dnd
 import clf_vgmidi.load_data as vg
 
 from gnt_utils import *
@@ -64,7 +64,26 @@ def classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf
         ctx_emotion = classify_sentence_emotion(X[i], tokenizer, clf_dnd_valence, clf_dnd_arousal)
         print(X[i], discretize_emotion(ctx_emotion))
 
-        story_emotion.append((duration,ctx_emotion))
+        story_emotion.append((duration, ctx_emotion))
+
+    return story_emotion
+
+def get_ground_truth_emotion(S, X, Y1, Y2, ix_fst, ix_lst):
+    story_emotion = []
+    for i in range(len(X)):
+        if i < ix_fst:
+            continue
+
+        if i >= ix_lst:
+            break
+
+        # Get sentence duration
+        duration = S[i+1] - S[i]
+
+        # Get sentence emotion
+        ctx_emotion = [Y1[i], Y2[i]]
+
+        story_emotion.append((duration, ctx_emotion))
 
     return story_emotion
 
@@ -133,6 +152,8 @@ if __name__ == "__main__":
     parser.add_argument('--init', type=str, default="", help="Seed to start music generation.")
     parser.add_argument('--topk', type=int, default=10, help="Top k tokens to consider when sampling.")
     parser.add_argument('--beam', type=int, default=3, help="Beam Size.")
+    parser.add_argument('--ground', dest='pre', action='store_true')
+    parser.set_defaults(pre=False)
 
     opt = parser.parse_args()
 
@@ -149,7 +170,7 @@ if __name__ == "__main__":
     vocab_size = len(vocab)
 
     # Load episodes (S is list of starting times and X is a list of sentences)
-    S,X,_,_ = dnd.load_episode(opt.ep)
+    S,X,Y1,Y2 = dnd.load_episode(opt.ep)
     X = dnd.parse_contexts(X, EPISODE_CTX)
 
     # Set first and last indices of sentences in the story
@@ -163,10 +184,13 @@ if __name__ == "__main__":
     tokenizer = tm.BertTokenizer.from_pretrained('bert-base-uncased')
 
     # Load sentence classifier
-    clf_dnd_valence = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep3_0/clf_bert")
-    clf_dnd_arousal = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep3_1/clf_bert")
+    if opt.ground:
+        story_emotion = get_ground_truth_emotion(S, X, Y1, Y2, ix_fst, ix_lst)
+    else:
+        clf_dnd_valence = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep3_0/clf_bert")
+        clf_dnd_arousal = load_clf_dnd(vocab_size, "../trained/clf_bert.ckpt/clf_bert_ep3_1/clf_bert")
 
-    story_emotion = classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal)
+        story_emotion = classify_story_emotion(S, X, ix_fst, ix_lst, tokenizer, clf_dnd_valence, clf_dnd_arousal)
 
     # Clean up story classifier
     del tokenizer

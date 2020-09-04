@@ -2,7 +2,7 @@ import argparse
 import tensorflow as tf
 import transformers as tm
 
-from data_dnd import *
+from load_data import *
 
 BUFFER_SIZE=10000
 

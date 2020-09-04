@@ -59,10 +59,10 @@ def load_episode(filepath):
         x = x.lower()
 
         # Text pre-processing
-        x = remove_accented_chars(x)
-        x = remove_stopwords(x)
-        x = remove_punctuation(x)
-        x = convert_numbers(x)
+        #x = remove_accented_chars(x)
+        #x = remove_stopwords(x)
+        #x = remove_punctuation(x)
+        #x = convert_numbers(x)
 
         S.append(s)
         X.append(x)

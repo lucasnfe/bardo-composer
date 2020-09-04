@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 
-from data_dnd import *
+from load_data import *
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
