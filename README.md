@@ -9,11 +9,9 @@ model to generate musical pieces conveying the desired emotion.
 
 ## Examples of Generated Pieces
 
-- [Piece 1]()
-- [Piece 2]()
-- [Piece 3]()
-- [Piece 4]()
-- [Piece 5]()
+- [Piece 1](https://raw.githubusercontent.com/lucasnfe/bardo-composer/master/output/piece1_ag_sus.wav)
+- [Piece 2](https://raw.githubusercontent.com/lucasnfe/bardo-composer/master/output/piece2_ag_calm.wav)
+- [Piece 3](https://raw.githubusercontent.com/lucasnfe/bardo-composer/master/output/piece3_sus_ag.wav)
 
 ## Installing Dependencies
 
