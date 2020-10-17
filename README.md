@@ -25,17 +25,41 @@ In the paper, we report the accuracy of these models. This section describes how
 We compared the fine-tuned BERT model for story emotion classification with the simpler Naıve Bayes approach of [Padovani, Ferreira, and
 Lelis (2017)]. 
 
-#### Download Pre-trained BERT
-
 #### Fine-tune Pre-trained BERT
+
+```
+cd composer/clf_dnd/
+python3 clf_bert.py --data ../../data/dnd/
+```
+
+#### Train Naive Bayes 
+
+```
+cd composer/clf_dnd/
+python3 clf_nbayes.py --data ../../data/dnd/
+```
+
+Both these scripts will perform and report accuracy experiments on the Call of the Wild dataset [Padovani, Ferreira, and
+Lelis (2017)]. 
 
 ### Music Emotion Classification
 
 We compared the fine-tuned GPT2 model for music emotion classification with the simpler LSTM approach of [Ferreira and Whitehead (2019)].
 
-#### Download Pre-trained Models
+#### Download Pre-trained GPT-2
 
-- LSTM
-- GPT2
+In the paper, the GPT-2 model was pre-trained using a new dataset called [ADL-Piano-Midi](). The pre-trained model can be download here:
 
-#### Fine-tune Pre-trained Models
+#### Fine-tune Pre-trained GPT-2
+
+```
+cd composer/clf_dnd/
+python3 clf_nbayes.py --data ../../data/dnd/
+```
+
+#### Train LSTM 
+
+```
+cd composer/clf_dnd/
+python3 clf_nbayes.py --data ../../data/dnd/
+```
