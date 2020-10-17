@@ -48,18 +48,22 @@ We compared the fine-tuned GPT2 model for music emotion classification with the 
 
 #### Download Pre-trained GPT-2
 
-In the paper, the GPT-2 model was pre-trained using a new dataset called [ADL-Piano-Midi](). The pre-trained model can be download here:
+In the paper, the GPT-2 model was pre-trained using a new dataset called [ADL-Piano-Midi](). The pre-trained model can be download as follows:
+
+```
+$ wget https://github.com/lucasnfe/bardo-composer/releases/download/0.1/pre-trained-gpt2.zip
+```
 
 #### Fine-tune Pre-trained GPT-2
 
 ```
-cd composer/clf_dnd/
-python3 clf_nbayes.py --data ../../data/dnd/
+cd composer/clf_vgmidi/
+python3 clf_gpt2.py --conf clf_gpt2.json
 ```
 
 #### Train LSTM 
 
 ```
-cd composer/clf_dnd/
-python3 clf_nbayes.py --data ../../data/dnd/
+cd composer/clf_vgmidi/
+python3 clf_lstm.py --conf clf_lstm.json
 ```
