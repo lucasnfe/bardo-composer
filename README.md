@@ -67,3 +67,19 @@ python3 clf_gpt2.py --conf clf_gpt2.json
 cd composer/clf_vgmidi/
 python3 clf_lstm.py --conf clf_lstm.json
 ```
+
+## Citing this Work
+
+If you use this method in your research, please cite:
+
+```
+@inproceedings{ferreira2020computer,
+  title={Computer-generated music for tabletop role-playing games},
+  author={Ferreira, Lucas and Lelis, Levi and Whitehead, Jim},
+  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment},
+  volume={16},
+  number={1},
+  pages={59--65},
+  year={2020}
+}
+```
